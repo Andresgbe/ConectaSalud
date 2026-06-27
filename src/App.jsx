@@ -28,7 +28,7 @@ export default function App() {
 
       <div className="wrap">
         <nav className="tabs">
-                    ç<button
+          <button
             className={tab === 'ver' ? 'active' : ''}
             onClick={() => setTab('ver')}
           >
