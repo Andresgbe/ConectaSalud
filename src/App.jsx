@@ -38,7 +38,7 @@ export default function App() {
             className={tab === 'pedir' ? 'active' : ''}
             onClick={() => setTab('pedir')}
           >
-            🏥 Reportar necesidad
+            🏥 REPORTAR NECESIDAD
           </button>
         </nav>
 
