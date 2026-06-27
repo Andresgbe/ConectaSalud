@@ -183,3 +183,31 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
   font-size:.8rem;cursor:pointer;padding:0;text-decoration:underline;
 }
 .mini-link:disabled{opacity:.5;cursor:default;}
+
+.food-card{
+  position:relative;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:14px 14px 14px 18px;margin-bottom:12px;overflow:hidden;
+}
+.food-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;}
+.food-card.f-0::before{background:var(--critica);}
+.food-card.f-1::before{background:var(--ambar);}
+.food-card.f-2::before{background:#bbb;}
+.food-card.f-3::before{background:var(--verde);}
+
+.food-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.92rem;}
+.food-row .food-label{font-weight:600;min-width:140px;}
+.food-chip{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.food-chip.no_hay{background:var(--critica-bg);color:var(--critica);}
+.food-chip.queda_poco{background:var(--ambar-bg);color:var(--ambar);}
+.food-chip.suficiente{background:var(--verde-bg);color:var(--verde);}
+.food-chip.sin_dato{background:#eee;color:#777;}
+
+.food-pick{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px;}
+.food-pick label{
+  flex:1 1 100px;text-align:center;border:2px solid var(--line);border-radius:8px;
+  padding:8px 4px;cursor:pointer;font-size:.82rem;color:#555;position:relative;font-weight:600;
+}
+.food-pick label input{position:absolute;opacity:0;pointer-events:none;}
+.food-pick label.sel-no_hay{border-color:var(--critica);background:var(--critica-bg);color:var(--critica);}
+.food-pick label.sel-queda_poco{border-color:var(--ambar);background:var(--ambar-bg);color:var(--ambar);}
+.food-pick label.sel-suficiente{border-color:var(--verde);background:var(--verde-bg);color:var(--verde);}

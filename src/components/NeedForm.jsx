@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
-
-const OTRO_VALOR = '__OTRO__'
 
 const URGENCIA_OPCIONES = [
   ['urgente', '🆘 Urgente: no queda'],
@@ -16,49 +14,24 @@ function nuevoItem() {
   return { uid: `item-${itemSeq}`, insumo: '', cantidad: '', urgencia: '' }
 }
 
-const initialMeta = { hospital: '', hospitalOtro: '', contacto: '', notas: '' }
-
-export default function NeedForm({ onPublished }) {
-  const [meta, setMeta] = useState(initialMeta)
+export default function NeedForm({ hospital, onPublished }) {
+  const [contacto, setContacto] = useState('')
+  const [notas, setNotas] = useState('')
   const [items, setItems] = useState([nuevoItem()])
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
-  const [hospitales, setHospitales] = useState([])
-  const [loadingHosp, setLoadingHosp] = useState(true)
-
-  useEffect(() => {
-    supabase.from('hospitales').select('nombre').order('orden').order('nombre')
-      .then(({ data, error }) => {
-        if (!error) setHospitales(data || [])
-        setLoadingHosp(false)
-      })
-  }, [])
-
-  function updateMeta(field, value) {
-    setMeta((m) => ({ ...m, [field]: value }))
-  }
 
   function updateItem(uid, field, value) {
     setItems((list) => list.map((it) => (it.uid === uid ? { ...it, [field]: value } : it)))
   }
-
   function addItem() {
     setItems((list) => [...list, nuevoItem()])
   }
-
   function removeItem(uid) {
     setItems((list) => (list.length > 1 ? list.filter((it) => it.uid !== uid) : list))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-
-    const esHospitalNuevo = meta.hospital === OTRO_VALOR
-    const hospitalFinal = esHospitalNuevo ? meta.hospitalOtro.trim() : meta.hospital
-
-    if (!hospitalFinal) {
-      setStatus({ state: 'err', msg: 'Indica el nombre del hospital.' })
-      return
-    }
     if (items.some((it) => !it.insumo.trim())) {
       setStatus({ state: 'err', msg: 'Cada insumo necesita un nombre.' })
       return
@@ -70,29 +43,15 @@ export default function NeedForm({ onPublished }) {
 
     setStatus({ state: 'loading', msg: 'Publicando…' })
 
-    // Si el hospital fue escrito a mano, lo agregamos a la lista para que
-    // aparezca en el select la próxima vez. Si falla, no detenemos el
-    // flujo principal — la necesidad de todas formas se publica.
-    if (esHospitalNuevo) {
-      const { error: errHosp } = await supabase
-        .from('hospitales')
-        .upsert([{ nombre: hospitalFinal }], { onConflict: 'nombre', ignoreDuplicates: true })
-      if (!errHosp) {
-        setHospitales((h) => (h.some((x) => x.nombre === hospitalFinal) ? h : [...h, { nombre: hospitalFinal }]))
-      } else {
-        console.error(errHosp)
-      }
-    }
-
     const filas = items.map((it) => ({
-      hospital: hospitalFinal,
+      hospital,
       estado: 'Caracas',
       ciudad: '',
       insumo: it.insumo.trim(),
       cantidad: it.cantidad.trim(),
-      contacto: meta.contacto.trim(),
+      contacto: contacto.trim(),
       urgencia: it.urgencia,
-      notas: meta.notas.trim(),
+      notas: notas.trim(),
     }))
 
     const { error } = await supabase.from('necesidades').insert(filas)
@@ -105,16 +64,17 @@ export default function NeedForm({ onPublished }) {
 
     setStatus({
       state: 'ok',
-      msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}. Ya son visibles para los centros de acopio.`,
+      msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.`,
     })
-    setMeta(initialMeta)
+    setContacto('')
+    setNotas('')
     setItems([nuevoItem()])
     setTimeout(() => onPublished?.(), 900)
   }
 
   return (
     <div className="panel">
-      <h2>¿Qué insumos necesita tu hospital o centro de salud?</h2>
+      <h2>¿Qué insumos necesita {hospital}?</h2>
       <p className="sub">
         Agrega uno o varios insumos en el mismo reporte. Cada uno se publica
         por separado para que los centros de acopio puedan llevarlos
@@ -122,29 +82,10 @@ export default function NeedForm({ onPublished }) {
       </p>
 
       <form onSubmit={handleSubmit}>
-        <label className="req">Hospital o centro</label>
-        <select
-          required value={meta.hospital}
-          onChange={(e) => updateMeta('hospital', e.target.value)}
-        >
-          <option value="">{loadingHosp ? 'Cargando hospitales…' : 'Selecciona…'}</option>
-          {hospitales.map((h) => <option key={h.nombre} value={h.nombre}>{h.nombre}</option>)}
-          <option value={OTRO_VALOR}>Otro (especificar)</option>
-        </select>
-
-        {meta.hospital === OTRO_VALOR && (
-          <input
-            type="text" required style={{ marginTop: 8 }}
-            value={meta.hospitalOtro}
-            onChange={(e) => updateMeta('hospitalOtro', e.target.value)}
-            placeholder="Nombre del hospital o centro"
-          />
-        )}
-
         <label className="req">Contacto (tel./WhatsApp)</label>
         <input
-          type="tel" required value={meta.contacto}
-          onChange={(e) => updateMeta('contacto', e.target.value)}
+          type="tel" required value={contacto}
+          onChange={(e) => setContacto(e.target.value)}
           placeholder="Ej: 0414-1234567"
         />
 
@@ -152,11 +93,7 @@ export default function NeedForm({ onPublished }) {
         {items.map((item) => (
           <div className="insumo-item" key={item.uid}>
             {items.length > 1 && (
-              <button
-                type="button" className="remove-item-btn"
-                onClick={() => removeItem(item.uid)}
-                aria-label="Quitar este insumo"
-              >✕</button>
+              <button type="button" className="remove-item-btn" onClick={() => removeItem(item.uid)} aria-label="Quitar este insumo">✕</button>
             )}
             <div className="insumo-item-row">
               <input
@@ -191,8 +128,8 @@ export default function NeedForm({ onPublished }) {
 
         <label>Notas adicionales (opcional)</label>
         <textarea
-          value={meta.notas}
-          onChange={(e) => updateMeta('notas', e.target.value)}
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
           placeholder="Horario de recepción, persona a contactar, condiciones de acceso…"
         />
 
