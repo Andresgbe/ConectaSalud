@@ -3,91 +3,104 @@ import NeedForm from './components/NeedForm.jsx'
 import NeedsList from './components/NeedsList.jsx'
 import FoodTab from './components/FoodTab.jsx'
 import Login from './components/Login.jsx'
+import AdminPanel from './components/AdminPanel.jsx'
 
-const STORAGE_KEY = 'hospital_logueado'
+const K_HOSPITAL = 'hospital_creds'
+const K_ADMIN = 'admin_creds'
 
 export default function App() {
   const [tab, setTab] = useState('ver')
-  const [hospitalLogueado, setHospitalLogueado] = useState(
-    () => localStorage.getItem(STORAGE_KEY) || ''
-  )
+  const [hospitalCreds, setHospitalCreds] = useState(() => {
+    const raw = localStorage.getItem(K_HOSPITAL)
+    return raw ? JSON.parse(raw) : null
+  })
+  const [adminCreds, setAdminCreds] = useState(() => {
+    const raw = localStorage.getItem(K_ADMIN)
+    return raw ? JSON.parse(raw) : null
+  })
 
-  function handleLogin(nombreHospital) {
-    localStorage.setItem(STORAGE_KEY, nombreHospital)
-    setHospitalLogueado(nombreHospital)
+  function handleLogin(nombreHospital, nombrePersona, identificador, codigo) {
+    const creds = { nombre: nombreHospital, persona: nombrePersona, identificador, codigo }
+    localStorage.setItem(K_HOSPITAL, JSON.stringify(creds))
+    setHospitalCreds(creds)
     setTab('pedir')
   }
 
+  function handleAdminLogin(identificador, codigo) {
+    const creds = { identificador, codigo }
+    localStorage.setItem(K_ADMIN, JSON.stringify(creds))
+    setAdminCreds(creds)
+    setTab('admin')
+  }
+
   function handleLogout() {
-    localStorage.removeItem(STORAGE_KEY)
-    setHospitalLogueado('')
+    localStorage.removeItem(K_HOSPITAL)
+    localStorage.removeItem(K_ADMIN)
+    setHospitalCreds(null)
+    setAdminCreds(null)
     setTab('ver')
   }
+
+  const sesionActiva = hospitalCreds || adminCreds
 
   return (
     <>
       <header className="top">
         <div className="wrap">
           <h1>Reporte de insumos requeridos</h1>
-          <p>
-            Conecta hospitales que necesitan insumos médicos con centros de
-            acopio y voluntarios que pueden llevarlos.
-          </p>
+          <p>Conecta hospitales que necesitan insumos médicos con centros de acopio y voluntarios que pueden llevarlos.</p>
         </div>
       </header>
 
       <div className="disclaimer">
         <div className="wrap">
-         {/*  Esta es una herramienta <b>comunitaria, no oficial</b>. Los datos
-          publicados aquí son visibles para cualquier persona. Para
-          emergencias que pongan en riesgo vidas, contacta a Protección
-          Civil, Cruz Roja Venezolana (0422-7994880) o llama al 171. */}
-          {hospitalLogueado && (
-            <>Conectado como <b>{hospitalLogueado}</b> · <button className="mini-link" onClick={handleLogout}>Cerrar sesión</button></>
+          {sesionActiva && (
+            <>
+              Conectado como <b>{adminCreds ? 'ADMIN' : `${hospitalCreds.nombre} (${hospitalCreds.persona})`}</b>
+              {' · '}<button className="mini-link" onClick={handleLogout}>Cerrar sesión</button>
+            </>
           )}
         </div>
       </div>
 
       <div className="wrap">
         <nav className="tabs">
-          <button
-            className={tab === 'ver' ? 'active' : ''}
-            onClick={() => setTab('ver')}
-          >
+          <button className={tab === 'ver' ? 'active' : ''} onClick={() => setTab('ver')}>
             📃REPORTE DE INSUMOS REQUERIDOS
           </button>
 
-          {hospitalLogueado ? (
-            <button
-              className={tab === 'pedir' ? 'active' : ''}
-              onClick={() => setTab('pedir')}
-            >
+          {hospitalCreds ? (
+            <button className={tab === 'pedir' ? 'active' : ''} onClick={() => setTab('pedir')}>
               🏥 REPORTAR NECESIDAD
             </button>
-          ) : (
-            <button
-              className={tab === 'login' ? 'active' : ''}
-              onClick={() => setTab('login')}
-            >
-              🔐 Iniciar sesión
+          ) : !adminCreds ? (
+            <button className={tab === 'pedir' ? 'active' : ''} onClick={() => setTab('pedir')}>
+              📝 REGISTRAR NECESIDAD
             </button>
-          )}
+          ) : null}
 
           <button className={tab === 'comida' ? 'active' : ''} onClick={() => setTab('comida')}>
             🍽️ Comida
           </button>
+
+          {adminCreds && (
+            <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>
+              🛠️ Admin
+            </button>
+          )}
         </nav>
 
-        {tab === 'ver' && <NeedsList />}
-        {tab === 'pedir' && hospitalLogueado && (
-          <NeedForm hospital={hospitalLogueado} onPublished={() => setTab('ver')} />
+        {tab === 'ver' && <NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} />}
+        {tab === 'pedir' && hospitalCreds && (
+          <NeedForm hospital={hospitalCreds.nombre} onPublished={() => setTab('ver')} />
         )}
-        {tab === 'login' && !hospitalLogueado && <Login onLogin={handleLogin} />}
-        {tab === 'comida' && <FoodTab />}
+        {tab === 'pedir' && !hospitalCreds && !adminCreds && (
+          <Login onLogin={handleLogin} onAdminLogin={handleAdminLogin} />
+        )}
+        {tab === 'comida' && <FoodTab hospitalCreds={hospitalCreds} adminCreds={adminCreds} />}
+        {tab === 'admin' && adminCreds && <AdminPanel adminCreds={adminCreds} />}
 
-        <footer className="note">
-          Desarrollada por Andrés Gil, 26/6/2026 - 0412-6127323
-        </footer>
+        <footer className="note">Desarrollada por Andrés Gil, 26/6/2026 - 0412-6127323</footer>
       </div>
     </>
   )

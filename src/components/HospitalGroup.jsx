@@ -18,7 +18,7 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function HospitalGroup({ hospital, items, onChanged }) {
+export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds }) {
   const [selected, setSelected] = useState(new Set())
   const [claiming, setClaiming] = useState(false)
   const [name, setName] = useState('')
@@ -67,6 +67,18 @@ export default function HospitalGroup({ hospital, items, onChanged }) {
     onChanged?.()
   }
 
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar este insumo permanentemente?')) return
+    setBusy(true)
+    await supabase.rpc('admin_eliminar_necesidad', {
+      p_admin_id: adminCreds.identificador,
+      p_admin_codigo: adminCreds.codigo,
+      p_id: id,
+    })
+    setBusy(false)
+    onChanged?.()
+  }
+
   return (
     <div className={`need-card u-${topUrgencia}`}>
       <div className="need-top">
@@ -97,7 +109,9 @@ export default function HospitalGroup({ hospital, items, onChanged }) {
               </div>
               {it.notas && <div className="need-notas">{it.notas}</div>}
               <div className="item-sub">
-                {horaYrelativo(it.creado_en)} · 📞 {it.contacto}
+                {horaYrelativo(it.creado_en)}
+                {!it.contacto_oculto && it.contacto && <> · 📞 {it.contacto}</>}
+                {it.contacto_oculto && <> · 🔒 Contacto oculto</>}
                 {it.estado_cobertura === 'en_proceso' && (
                   <>
                     {' · '}
@@ -118,6 +132,12 @@ export default function HospitalGroup({ hospital, items, onChanged }) {
                     </span>
                     {' · '}
                     <button className="mini-link" disabled={busy} onClick={() => undo(it.id)}>Deshacer</button>
+                  </>
+                )}
+                {isAdmin && (
+                  <>
+                    {' · '}
+                    <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => eliminar(it.id)}>🗑️ Eliminar</button>
                   </>
                 )}
               </div>

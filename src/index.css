@@ -211,3 +211,12 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .food-pick label.sel-no_hay{border-color:var(--critica);background:var(--critica-bg);color:var(--critica);}
 .food-pick label.sel-queda_poco{border-color:var(--ambar);background:var(--ambar-bg);color:var(--ambar);}
 .food-pick label.sel-suficiente{border-color:var(--verde);background:var(--verde-bg);color:var(--verde);}
+
+.contacto-row{display:flex;gap:8px;align-items:center;}
+.contacto-row input{flex:1;}
+.eye-toggle{
+  background:#fff;border:1px solid #c9c5ba;border-radius:8px;
+  width:42px;height:42px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#666;flex-shrink:0;
+}
+.eye-toggle:hover{background:#f3f2ee;color:var(--teal-dark);}

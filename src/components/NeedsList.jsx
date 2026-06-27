@@ -4,7 +4,7 @@ import HospitalGroup from './HospitalGroup.jsx'
 
 const urgenciaRank = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
 
-export default function NeedsList() {
+export default function NeedsList({ isAdmin, adminCreds }) {
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
@@ -48,12 +48,11 @@ export default function NeedsList() {
       map.get(item.hospital).push(item)
     }
     const arr = Array.from(map.entries()).map(([hospital, items]) => {
-      const ordenados = [...items].sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en))
-      const topRank = Math.min(...items.map((i) => urgenciaRank[i.urgencia]))
+      const ordenados = [...items].sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en))
       const lastUpdate = Math.max(...items.map((i) => new Date(i.creado_en).getTime()))
-      return { hospital, items: ordenados, topRank, lastUpdate }
+      return { hospital, items: ordenados, lastUpdate }
     })
-    arr.sort((a, b) => a.topRank - b.topRank || b.lastUpdate - a.lastUpdate)
+    arr.sort((a, b) => b.lastUpdate - a.lastUpdate)
     return arr
   }, [filteredItems])
 
@@ -100,7 +99,7 @@ export default function NeedsList() {
       )}
 
       {groups.map((g) => (
-        <HospitalGroup key={g.hospital} hospital={g.hospital} items={g.items} onChanged={loadNeeds} />
+        <HospitalGroup key={g.hospital} hospital={g.hospital} items={g.items} onChanged={loadNeeds} isAdmin={isAdmin} adminCreds={adminCreds} />
       ))}
     </div>
   )

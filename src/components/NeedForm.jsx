@@ -14,8 +14,19 @@ function nuevoItem() {
   return { uid: `item-${itemSeq}`, insumo: '', cantidad: '', urgencia: '' }
 }
 
+function EyeIcon({ open }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <line x1="2" y1="2" x2="22" y2="22" />}
+    </svg>
+  )
+}
+
 export default function NeedForm({ hospital, onPublished }) {
   const [contacto, setContacto] = useState('')
+  const [ocultarContacto, setOcultarContacto] = useState(false)
   const [notas, setNotas] = useState('')
   const [items, setItems] = useState([nuevoItem()])
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
@@ -50,6 +61,7 @@ export default function NeedForm({ hospital, onPublished }) {
       insumo: it.insumo.trim(),
       cantidad: it.cantidad.trim(),
       contacto: contacto.trim(),
+      contacto_oculto: ocultarContacto,
       urgencia: it.urgencia,
       notas: notas.trim(),
     }))
@@ -62,11 +74,9 @@ export default function NeedForm({ hospital, onPublished }) {
       return
     }
 
-    setStatus({
-      state: 'ok',
-      msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.`,
-    })
+    setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
     setContacto('')
+    setOcultarContacto(false)
     setNotas('')
     setItems([nuevoItem()])
     setTimeout(() => onPublished?.(), 900)
@@ -75,19 +85,25 @@ export default function NeedForm({ hospital, onPublished }) {
   return (
     <div className="panel">
       <h2>¿Qué insumos necesita {hospital}?</h2>
-      <p className="sub">
-        Agrega uno o varios insumos en el mismo reporte. Cada uno se publica
-        por separado para que los centros de acopio puedan llevarlos
-        individualmente.
-      </p>
+      <p className="sub">Agrega uno o varios insumos en el mismo reporte. Cada uno se publica por separado para que los centros de acopio puedan llevarlos individualmente.</p>
 
       <form onSubmit={handleSubmit}>
-        <label className="req">Contacto (tel./WhatsApp)</label>
-        <input
-          type="tel" required value={contacto}
-          onChange={(e) => setContacto(e.target.value)}
-          placeholder="Ej: 0414-1234567"
-        />
+        <label>Contacto (tel./WhatsApp) — opcional</label>
+        <div className="contacto-row">
+          <input
+            type="tel" value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
+            placeholder="Ej: 0414-1234567"
+          />
+          <button
+            type="button" className="eye-toggle"
+            onClick={() => setOcultarContacto((v) => !v)}
+            title={ocultarContacto ? 'Oculto para el público — click para mostrar' : 'Visible para el público — click para ocultar'}
+          >
+            <EyeIcon open={!ocultarContacto} />
+          </button>
+        </div>
+        {ocultarContacto && <div className="msg" style={{ color: '#888' }}>🔒 Este número no se mostrará públicamente.</div>}
 
         <label style={{ marginTop: 18 }}>Insumos necesitados</label>
         {items.map((item) => (
@@ -96,25 +112,13 @@ export default function NeedForm({ hospital, onPublished }) {
               <button type="button" className="remove-item-btn" onClick={() => removeItem(item.uid)} aria-label="Quitar este insumo">✕</button>
             )}
             <div className="insumo-item-row">
-              <input
-                type="text" required value={item.insumo}
-                onChange={(e) => updateItem(item.uid, 'insumo', e.target.value)}
-                placeholder="Insumo necesario, ejemplo: jeringas"
-              />
-              <input
-                type="text" value={item.cantidad}
-                onChange={(e) => updateItem(item.uid, 'cantidad', e.target.value)}
-                placeholder="Cantidad (opcional)"
-              />
+              <input type="text" required value={item.insumo} onChange={(e) => updateItem(item.uid, 'insumo', e.target.value)} placeholder="Insumo necesario, ejemplo: jeringas" />
+              <input type="text" value={item.cantidad} onChange={(e) => updateItem(item.uid, 'cantidad', e.target.value)} placeholder="Cantidad (opcional)" />
             </div>
             <div className="urgencia-pick compact">
               {URGENCIA_OPCIONES.map(([val, label]) => (
                 <label key={val} className={item.urgencia === val ? `sel-${val}` : ''}>
-                  <input
-                    type="radio" name={`urgencia-${item.uid}`} value={val}
-                    checked={item.urgencia === val}
-                    onChange={() => updateItem(item.uid, 'urgencia', val)}
-                  />
+                  <input type="radio" name={`urgencia-${item.uid}`} value={val} checked={item.urgencia === val} onChange={() => updateItem(item.uid, 'urgencia', val)} />
                   {label}
                 </label>
               ))}
@@ -122,24 +126,16 @@ export default function NeedForm({ hospital, onPublished }) {
           </div>
         ))}
 
-        <button type="button" className="add-item-btn" onClick={addItem}>
-          + Agregar otro insumo
-        </button>
+        <button type="button" className="add-item-btn" onClick={addItem}>+ Agregar otro insumo</button>
 
         <label>Notas adicionales (opcional)</label>
-        <textarea
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-          placeholder="Horario de recepción, persona a contactar, condiciones de acceso…"
-        />
+        <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Horario de recepción, persona a contactar, condiciones de acceso…" />
 
         <button type="submit" className="primary" disabled={status.state === 'loading'}>
           {status.state === 'loading' ? 'Publicando…' : 'Publicar necesidad'}
         </button>
         {status.msg && (
-          <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>
-            {status.msg}
-          </div>
+          <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>
         )}
       </form>
     </div>

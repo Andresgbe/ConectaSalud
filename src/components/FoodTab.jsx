@@ -19,13 +19,17 @@ function timeAgo(iso) {
   return `hace ${Math.floor(hrs / 24)} d`
 }
 
-export default function FoodTab() {
+export default function FoodTab({ hospitalCreds, adminCreds }) {
+  const isAdmin = !!adminCreds
+  const loggedHospital = hospitalCreds?.nombre || null
+
   const [hospitales, setHospitales] = useState([])
   const [estados, setEstados] = useState({})
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ perecederos: '', no_perecederos: '', notas: '' })
   const [busy, setBusy] = useState(false)
+  const [texto, setTexto] = useState('')
 
   async function loadAll() {
     const [{ data: hData }, { data: eData }] = await Promise.all([
@@ -49,7 +53,9 @@ export default function FoodTab() {
   }, [])
 
   const filas = useMemo(() => {
+    const txt = texto.trim().toLowerCase()
     return hospitales
+      .filter((h) => !txt || h.nombre.toLowerCase().includes(txt))
       .map((h) => {
         const e = estados[h.nombre]
         const perecederos = e?.perecederos || 'sin_dato'
@@ -58,7 +64,7 @@ export default function FoodTab() {
         return { hospital: h.nombre, perecederos, no_perecederos, notas: e?.notas || '', actualizado_en: e?.actualizado_en, rank }
       })
       .sort((a, b) => a.rank - b.rank)
-  }, [hospitales, estados])
+  }, [hospitales, estados, texto])
 
   function startEdit(f) {
     setForm({
@@ -72,16 +78,15 @@ export default function FoodTab() {
   async function guardar() {
     if (!form.perecederos || !form.no_perecederos) return
     setBusy(true)
-    const { error } = await supabase.from('estado_comida').upsert(
-      [{
-        hospital: editing,
-        perecederos: form.perecederos,
-        no_perecederos: form.no_perecederos,
-        notas: form.notas.trim(),
-        actualizado_en: new Date().toISOString(),
-      }],
-      { onConflict: 'hospital' }
-    )
+    const creds = isAdmin ? adminCreds : hospitalCreds
+    const { error } = await supabase.rpc('actualizar_comida', {
+      p_identificador: creds.identificador,
+      p_codigo: creds.codigo,
+      p_hospital: editing,
+      p_perecederos: form.perecederos,
+      p_no_perecederos: form.no_perecederos,
+      p_notas: form.notas.trim(),
+    })
     setBusy(false)
     if (!error) {
       setEditing(null)
@@ -94,78 +99,72 @@ export default function FoodTab() {
   return (
     <div className="panel">
       <h2>Estado de alimentos por hospital</h2>
-      <p className="sub">
-        Indica si cada hospital tiene alimentos perecederos y no perecederos, o si se están agotando.
-      </p>
+      <p className="sub">Indica si cada hospital tiene alimentos perecederos y no perecederos, o si se están agotando.</p>
+
+      <div className="filters">
+        <input type="text" placeholder="Buscar hospital…" value={texto} onChange={(e) => setTexto(e.target.value)} />
+      </div>
 
       {loading && <div className="count-line">Cargando…</div>}
 
-      {!loading && filas.map((f) => (
-        <div className={`food-card f-${f.rank}`} key={f.hospital}>
-          <div className="need-top">
-            <h3>{f.hospital}</h3>
-          </div>
-          {f.actualizado_en && <div className="need-meta">Actualizado {timeAgo(f.actualizado_en)}</div>}
-
-          <div className="food-row">
-            <span className="food-label">Perecederos:</span>
-            <span className={`food-chip ${f.perecederos}`}>{LABEL[f.perecederos]}</span>
-          </div>
-          <div className="food-row">
-            <span className="food-label">No perecederos:</span>
-            <span className={`food-chip ${f.no_perecederos}`}>{LABEL[f.no_perecederos]}</span>
-          </div>
-          {f.notas && <div className="need-notas">{f.notas}</div>}
-
-          <div className="status-line">
-            <button className="claim-btn" onClick={() => startEdit(f)}>Actualizar estado</button>
-          </div>
-
-          {editing === f.hospital && (
-            <div className="insumo-item" style={{ marginTop: 10 }}>
-              <label style={{ marginTop: 0 }}>Alimentos perecederos</label>
-              <div className="food-pick">
-                {OPCIONES.map(([val, label]) => (
-                  <label key={val} className={form.perecederos === val ? `sel-${val}` : ''}>
-                    <input
-                      type="radio" name="perecederos" value={val}
-                      checked={form.perecederos === val}
-                      onChange={() => setForm((s) => ({ ...s, perecederos: val }))}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-
-              <label>Alimentos no perecederos</label>
-              <div className="food-pick">
-                {OPCIONES.map(([val, label]) => (
-                  <label key={val} className={form.no_perecederos === val ? `sel-${val}` : ''}>
-                    <input
-                      type="radio" name="no_perecederos" value={val}
-                      checked={form.no_perecederos === val}
-                      onChange={() => setForm((s) => ({ ...s, no_perecederos: val }))}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-
-              <label>Notas (opcional)</label>
-              <input
-                type="text" value={form.notas}
-                onChange={(e) => setForm((s) => ({ ...s, notas: e.target.value }))}
-                placeholder="Ej: necesitan sobre todo leche y agua"
-              />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button className="cover-btn" disabled={busy} onClick={guardar}>Guardar</button>
-                <button className="undo-btn" onClick={() => setEditing(null)}>Cancelar</button>
-              </div>
+      {!loading && filas.map((f) => {
+        const puedeEditar = isAdmin || f.hospital === loggedHospital
+        return (
+          <div className={`food-card f-${f.rank}`} key={f.hospital}>
+            <div className="need-top">
+              <h3>{f.hospital}</h3>
             </div>
-          )}
-        </div>
-      ))}
+            {f.actualizado_en && <div className="need-meta">Actualizado {timeAgo(f.actualizado_en)}</div>}
+
+            <div className="food-row">
+              <span className="food-label">Perecederos:</span>
+              <span className={`food-chip ${f.perecederos}`}>{LABEL[f.perecederos]}</span>
+            </div>
+            <div className="food-row">
+              <span className="food-label">No perecederos:</span>
+              <span className={`food-chip ${f.no_perecederos}`}>{LABEL[f.no_perecederos]}</span>
+            </div>
+            {f.notas && <div className="need-notas">{f.notas}</div>}
+
+            <div className="status-line">
+              {puedeEditar ? (
+                <button className="claim-btn" onClick={() => startEdit(f)}>Actualizar estado</button>
+              ) : (
+                <span className="item-sub">Solo el personal de este hospital puede actualizar su estado.</span>
+              )}
+            </div>
+
+            {editing === f.hospital && (
+              <div className="insumo-item" style={{ marginTop: 10 }}>
+                <label style={{ marginTop: 0 }}>Alimentos perecederos</label>
+                <div className="food-pick">
+                  {OPCIONES.map(([val, label]) => (
+                    <label key={val} className={form.perecederos === val ? `sel-${val}` : ''}>
+                      <input type="radio" name="perecederos" value={val} checked={form.perecederos === val} onChange={() => setForm((s) => ({ ...s, perecederos: val }))} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <label>Alimentos no perecederos</label>
+                <div className="food-pick">
+                  {OPCIONES.map(([val, label]) => (
+                    <label key={val} className={form.no_perecederos === val ? `sel-${val}` : ''}>
+                      <input type="radio" name="no_perecederos" value={val} checked={form.no_perecederos === val} onChange={() => setForm((s) => ({ ...s, no_perecederos: val }))} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <label>Notas (opcional)</label>
+                <input type="text" value={form.notas} onChange={(e) => setForm((s) => ({ ...s, notas: e.target.value }))} placeholder="Ej: necesitan sobre todo leche y agua" />
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button className="cover-btn" disabled={busy} onClick={guardar}>Guardar</button>
+                  <button className="undo-btn" onClick={() => setEditing(null)}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
