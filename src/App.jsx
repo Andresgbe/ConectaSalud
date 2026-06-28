@@ -79,10 +79,10 @@ export default function App() {
             </button>
           ) : null}
 
-          <button className={tab === 'comida' ? 'active' : ''} onClick={() => setTab('comida')}>
+         {/* <button className={tab === 'comida' ? 'active' : ''} onClick={() => setTab('comida')}>
             🍽️ Comida
           </button>
-
+          */}
           {adminCreds && (
             <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>
               🛠️ Admin
@@ -97,7 +97,9 @@ export default function App() {
         {tab === 'pedir' && !hospitalCreds && !adminCreds && (
           <Login onLogin={handleLogin} onAdminLogin={handleAdminLogin} />
         )}
-        {tab === 'comida' && <FoodTab hospitalCreds={hospitalCreds} adminCreds={adminCreds} />}
+      {/*  
+      {tab === 'comida' && <FoodTab hospitalCreds={hospitalCreds} adminCreds={adminCreds} />} 
+      */}
         {tab === 'admin' && adminCreds && <AdminPanel adminCreds={adminCreds} />}
 
         <footer className="note">Desarrollada por Andrés Gil, 26/6/2026 - 0412-6127323</footer>

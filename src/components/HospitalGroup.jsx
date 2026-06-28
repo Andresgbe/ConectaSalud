@@ -7,7 +7,7 @@ const URGENCIA_LABEL = {
   mediana: '🟡 Mediana',
   baja: '🟢 Baja',
 }
-const STATUS_LABEL = { pendiente: 'Pendiente', en_proceso: 'En proceso', cubierto: 'Cubierto' }
+const STATUS_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado' }
 const urgenciaRank = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
 
 function horaYrelativo(iso) {
@@ -25,10 +25,19 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
   const [busy, setBusy] = useState(false)
 
   const pendientes = items.filter((i) => i.estado_cobertura === 'pendiente')
-  const topUrgencia = items.reduce(
-    (top, it) => (urgenciaRank[it.urgencia] < urgenciaRank[top] ? it.urgencia : top),
-    items[0]?.urgencia || 'baja'
-  )
+  const entregados = items
+    .filter((i) => i.estado_cobertura === 'entregado')
+    .sort((a, b) => new Date(b.actualizado_en) - new Date(a.actualizado_en))
+
+  // Pendientes arriba, entregados siempre al final.
+  const ordenados = [...pendientes, ...entregados]
+
+  const topUrgencia = pendientes.length > 0
+    ? pendientes.reduce(
+        (top, it) => (urgenciaRank[it.urgencia] < urgenciaRank[top] ? it.urgencia : top),
+        pendientes[0].urgencia
+      )
+    : 'baja'
 
   function toggle(id) {
     setSelected((s) => {
@@ -50,13 +59,6 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
     setClaiming(false)
     setSelected(new Set())
     setName('')
-    onChanged?.()
-  }
-
-  async function markCovered(id) {
-    setBusy(true)
-    await supabase.rpc('marcar_cubierto', { p_id: id })
-    setBusy(false)
     onChanged?.()
   }
 
@@ -89,7 +91,7 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
       </div>
 
       <div className="item-list">
-        {items.map((it) => (
+        {ordenados.map((it) => (
           <div className="item-row" key={it.id}>
             {it.estado_cobertura === 'pendiente' ? (
               <input
@@ -98,37 +100,39 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
                 onChange={() => toggle(it.id)}
               />
             ) : (
-              <span className="item-checkbox-placeholder">
-                {it.estado_cobertura === 'cubierto' ? '✅' : '🔶'}
-              </span>
+              <span className="item-checkbox-placeholder">✅</span>
             )}
             <div className="item-content">
               <div className="item-line">
                 <b>{it.insumo}</b>{it.cantidad ? ` — ${it.cantidad}` : ''}
                 <span className={`tag-mini u-${it.urgencia}`}>{URGENCIA_LABEL[it.urgencia]}</span>
+                {it.estado_cobertura === 'pendiente' && selected.has(it.id) && !claiming && (
+                  <button className="claim-btn" style={{ marginLeft: 8 }} onClick={() => setClaiming(true)}>
+                    Marcar como entregado
+                  </button>
+                )}
               </div>
+
+              {it.estado_cobertura === 'pendiente' && selected.has(it.id) && claiming && (
+                <div className="claim-form open">
+                  <input
+                    type="text" placeholder="Tu nombre u organización"
+                    value={name} onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                  />
+                  <button disabled={busy} onClick={confirmClaimBatch}>Confirmar</button>
+                  <button type="button" className="undo-btn" onClick={() => setClaiming(false)}>Cancelar</button>
+                </div>
+              )}
               {it.notas && <div className="need-notas">{it.notas}</div>}
               <div className="item-sub">
                 {horaYrelativo(it.creado_en)}
-                {!it.contacto_oculto && it.contacto && <> · 📞 {it.contacto}</>}
-                {it.contacto_oculto && <> · 🔒 Contacto oculto</>}
-                {it.estado_cobertura === 'en_proceso' && (
+                {it.contacto && <> · 📞 {it.contacto}</>}
+                {it.estado_cobertura === 'entregado' && (
                   <>
                     {' · '}
-                    <span className="status-chip en_proceso">
-                      {STATUS_LABEL.en_proceso}{it.cubierto_por ? ` · ${it.cubierto_por}` : ''}
-                    </span>
-                    {' · '}
-                    <button className="mini-link" disabled={busy} onClick={() => markCovered(it.id)}>Marcar cubierto</button>
-                    {' · '}
-                    <button className="mini-link" disabled={busy} onClick={() => undo(it.id)}>Deshacer</button>
-                  </>
-                )}
-                {it.estado_cobertura === 'cubierto' && (
-                  <>
-                    {' · '}
-                    <span className="status-chip cubierto">
-                      {STATUS_LABEL.cubierto}{it.cubierto_por ? ` · ${it.cubierto_por}` : ''}
+                    <span className="status-chip entregado">
+                      {STATUS_LABEL.entregado}{it.cubierto_por ? ` · ${it.cubierto_por}` : ''}
                     </span>
                     {' · '}
                     <button className="mini-link" disabled={busy} onClick={() => undo(it.id)}>Deshacer</button>
@@ -145,35 +149,22 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
           </div>
         ))}
       </div>
+        {pendientes.length > 0 && selected.size === 0 && (
+                <div className="status-line">
+                  <button className="claim-btn" onClick={selectAllPendientes}>
+                    Seleccionar todos los pendientes
+                  </button>
+                </div>
+              )}
 
-      {pendientes.length > 0 && (
-        <div className="status-line">
-          {selected.size === 0 ? (
-            <button className="claim-btn" onClick={selectAllPendientes}>
-              Seleccionar todos los pendientes
-            </button>
-          ) : (
-            <>
-              <span className="status-chip pendiente">
-                {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
-              </span>
-              <button className="claim-btn" onClick={() => setClaiming(true)}>Voy a llevar esto</button>
-              <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
-            </>
-          )}
-        </div>
-      )}
-
-      {claiming && (
-        <div className="claim-form open">
-          <input
-            type="text" placeholder="Tu nombre u organización"
-            value={name} onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-          <button disabled={busy} onClick={confirmClaimBatch}>Confirmar</button>
-        </div>
-      )}
+              {selected.size > 0 && !claiming && (
+                <div className="status-line">
+                  <span className="status-chip pendiente">
+                    {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
+                  </span>
+                  <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
+                </div>
+              )}
     </div>
   )
 }

@@ -62,7 +62,7 @@ export default function NeedsList({ isAdmin, adminCreds }) {
 
   return (
     <div className="panel">
-      <h2>Necesidades publicadas</h2>
+      <h2>Necesidades registradas</h2>
       <p className="sub">
         Agrupadas por hospital. Marca lo que vas a llevar para que otros no dupliquen el esfuerzo.
       </p>
@@ -78,8 +78,7 @@ export default function NeedsList({ isAdmin, adminCreds }) {
         <select value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
           <option value="">Todo estado de cobertura</option>
           <option value="pendiente">Pendiente</option>
-          <option value="en_proceso">En proceso</option>
-          <option value="cubierto">Cubierto</option>
+          <option value="entregado">Entregado</option>
         </select>
         <input
           type="text" placeholder="Buscar insumo u hospital…"
