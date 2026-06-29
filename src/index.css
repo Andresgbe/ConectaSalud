@@ -13,6 +13,8 @@
   --ambar-bg:#fdf2db;
   --verde:#1f7a4d;
   --verde-bg:#e6f3ea;
+  --azul:#1d5fc4;
+  --azul-bg:#e6edfb;
   --focus:#0c6e62;
 }
 *{box-sizing:border-box;}
@@ -108,6 +110,33 @@ button.primary:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
 
 .count-line{font-size:.82rem;color:#666;margin-bottom:10px;}
 
+.stats-row{display:flex;gap:10px;margin-bottom:14px;}
+.stat-card{
+  flex:1;display:flex;align-items:center;gap:10px;min-width:0;
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;
+}
+.stat-icon-wrap{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.stat-icon{width:18px;height:18px;}
+.stat-pendientes .stat-icon-wrap{background:var(--verde-bg);color:var(--verde);}
+.stat-hospitales .stat-icon-wrap{background:var(--azul-bg);color:var(--azul);}
+.stat-urgentes .stat-icon-wrap{background:var(--critica-bg);color:var(--critica);}
+.stat-text{display:flex;flex-direction:column;min-width:0;line-height:1.15;}
+.stat-num{font-size:1.15rem;font-weight:800;color:var(--ink);}
+.stat-label{font-size:.72rem;color:#666;white-space:nowrap;}
+
+@media (max-width:480px){
+  .stats-row{gap:6px;}
+  .stat-card{padding:8px 6px;gap:6px;}
+  .stat-icon-wrap{width:28px;height:28px;}
+  .stat-icon{width:14px;height:14px;}
+  .stat-num{font-size:1rem;}
+  .stat-label{font-size:.65rem;}
+}
+
 .need-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 14px 18px;margin-bottom:12px;overflow:hidden;}
 .need-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;}
 .need-card.u-urgente::before{background:var(--critica);}
@@ -128,6 +157,15 @@ button.primary:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
 .tag.u-baja{background:var(--verde-bg);color:var(--verde);}
 
 .need-meta{font-size:.85rem;color:#555;margin:4px 0 8px;}
+
+.collapse-btn{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--line);background:#fff;color:var(--ink);
+  font-size:1.15rem;font-weight:700;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.collapse-btn:hover{background:#f3f2ee;}
+.collapse-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
 .need-insumo{font-size:.95rem;margin:6px 0;}
 .need-insumo b{display:block;font-size:1rem;}
 .need-notas{font-size:.85rem;color:#555;margin:4px 0 10px;font-style:italic;}

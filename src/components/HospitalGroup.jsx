@@ -21,6 +21,7 @@ function horaYrelativo(iso) {
 export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds }) {
   const [selected, setSelected] = useState(new Set())
   const [busy, setBusy] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const puedeMarcar = !!acopioCreds
   const esMiHospital = medicoCreds?.hospital === hospital
 
@@ -98,13 +99,24 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
 
   return (
     <div className={`need-card u-${topUrgencia}`}>
-      <div className="need-top">
+     <div className="need-top">
         <h3>{hospital}</h3>
+        <button
+          type="button"
+          className="collapse-btn"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? `Expandir ${hospital}` : `Colapsar ${hospital}`}
+        >
+          {collapsed ? '+' : '−'}
+        </button>
       </div>
       <div className="need-meta">
         {items.length} insumo{items.length === 1 ? '' : 's'} · {pendientes.length} pendiente{pendientes.length === 1 ? '' : 's'}
       </div>
 
+      {!collapsed && (
+      <>
       <div className="item-list">
         {ordenados.map((it) => (
           <div className="item-row" key={it.id}>
@@ -180,6 +192,8 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
           </span>
           <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
         </div>
+      )}
+      </>
       )}
     </div>
   )
