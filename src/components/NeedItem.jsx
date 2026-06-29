@@ -7,7 +7,17 @@ const URGENCIA_LABEL = {
   mediana: '🟡 Mediana',
   baja: '🟢 Baja',
 }
-const STATUS_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado' }
+const STATUS_LABEL = {
+  pendiente: 'Pendiente',
+  lista_para_salir: 'Lista para salir',
+  enviada: 'En camino',
+  recibida: 'Recibida',
+}
+const SIGUIENTE_LABEL = {
+  pendiente: 'Marcar lista para salir',
+  lista_para_salir: 'Marcar en camino',
+  enviada: 'Confirmar recibida',
+}
 
 function horaYrelativo(iso) {
   const fecha = new Date(iso)
@@ -17,23 +27,32 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, puedeMarcar, selected, onToggle, disabled }) {
+export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
   const [busy, setBusy] = useState(false)
   const esMiHospital = medicoCreds?.hospital === item.hospital
+  const puedeCambiar = !!acopioCreds || !!fundacionCreds || (medicoCreds && esMiHospital)
 
-  async function undo() {
+  async function avanzar() {
     setBusy(true)
     if (acopioCreds) {
-      await supabase.rpc('deshacer_necesidad', {
-        p_id: item.id,
-        p_telefono: acopioCreds.telefono,
-        p_codigo: acopioCreds.codigo,
-      })
-    } else {
-      await supabase.rpc('deshacer_necesidad_fundacion', {
-        p_id: item.id,
-        p_telefono: fundacionCreds.telefono,
-      })
+      await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
+    } else if (fundacionCreds) {
+      await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
+    } else if (medicoCreds) {
+      await supabase.rpc('avanzar_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
+    }
+    setBusy(false)
+    onChanged?.()
+  }
+
+  async function retroceder() {
+    setBusy(true)
+    if (acopioCreds) {
+      await supabase.rpc('retroceder_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
+    } else if (fundacionCreds) {
+      await supabase.rpc('retroceder_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
+    } else if (medicoCreds) {
+      await supabase.rpc('retroceder_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
     }
     setBusy(false)
     onChanged?.()
@@ -54,10 +73,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   async function eliminarPropio() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
-    await supabase.rpc('eliminar_necesidad_medico', {
-      p_id: item.id,
-      p_telefono: medicoCreds.telefono,
-    })
+    await supabase.rpc('eliminar_necesidad_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
     setBusy(false)
     onChanged?.()
   }
@@ -65,10 +81,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   async function eliminarFundacion() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
-    await supabase.rpc('eliminar_necesidad_fundacion', {
-      p_id: item.id,
-      p_telefono: fundacionCreds.telefono,
-    })
+    await supabase.rpc('eliminar_necesidad_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
     setBusy(false)
     onChanged?.()
   }
@@ -83,14 +96,6 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       </div>
 
       <div className="item-line">
-        {item.estado_cobertura === 'pendiente' && puedeMarcar && (
-          <input
-            type="checkbox" className="item-checkbox"
-            checked={selected} disabled={disabled}
-            onChange={() => onToggle(item.id)}
-          />
-        )}
-        {item.estado_cobertura === 'entregado' && <span className="item-checkbox-placeholder">✅</span>}
         <b>{item.insumo}</b>{item.cantidad ? ` — ${item.cantidad}` : ''}
         <span className={`tag-mini u-${item.urgencia}`}>{URGENCIA_LABEL[item.urgencia]}</span>
       </div>
@@ -102,20 +107,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         {item.servicio && <> · {item.servicio}</>}
         {item.contacto && <> · 📞 {item.contacto}</>}
         {item.creado_por && <> · {item.creado_por}</>}
-        {item.estado_cobertura === 'entregado' && (
-          <>
-            {' · '}
-            <span className="status-chip entregado">
-              {STATUS_LABEL.entregado}{item.cubierto_por ? ` · ${item.cubierto_por}` : ''}
-            </span>
-            {puedeMarcar && (
-              <>
-                {' · '}
-                <button className="mini-link" disabled={busy} onClick={undo}>Deshacer</button>
-              </>
-            )}
-          </>
-        )}
+        {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <> · {item.cubierto_por}</>}
         {puedeEliminar && (
           <>
             {' · '}
@@ -123,6 +115,17 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
           </>
         )}
       </div>
+
+      {puedeCambiar && (
+        <div className="status-line">
+          {item.estado_cobertura !== 'recibida' && (
+            <button className="claim-btn" disabled={busy} onClick={avanzar}>{SIGUIENTE_LABEL[item.estado_cobertura]}</button>
+          )}
+          {item.estado_cobertura !== 'pendiente' && (
+            <button className="undo-btn" disabled={busy} onClick={retroceder}>Deshacer</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

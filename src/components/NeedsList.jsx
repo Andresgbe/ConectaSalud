@@ -10,10 +10,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
-  const [selected, setSelected] = useState(new Set())
-  const [busy, setBusy] = useState(false)
-
-  const puedeMarcar = !!acopioCreds || !!fundacionCreds
+  const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds
 
   async function loadNeeds() {
     const { data, error } = await supabase
@@ -60,35 +57,6 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     setFilters((f) => ({ ...f, [field]: value }))
   }
 
-  function toggle(id) {
-    setSelected((s) => {
-      const next = new Set(s)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  async function confirmarEntrega() {
-    if (selected.size === 0) return
-    if (!confirm(`¿Confirmas que vas a entregar ${selected.size} insumo${selected.size === 1 ? '' : 's'}?`)) return
-    setBusy(true)
-    if (acopioCreds) {
-      await supabase.rpc('reclamar_varios', {
-        p_ids: Array.from(selected),
-        p_telefono: acopioCreds.telefono,
-        p_codigo: acopioCreds.codigo,
-      })
-    } else {
-      await supabase.rpc('reclamar_varios_fundacion', {
-        p_ids: Array.from(selected),
-        p_telefono: fundacionCreds.telefono,
-      })
-    }
-    setBusy(false)
-    setSelected(new Set())
-    loadNeeds()
-  }
-
   return (
     <div className="panel">
       <h2>Necesidades registradas</h2>
@@ -112,7 +80,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           </span>
           <div className="stat-text">
             <span className="stat-num">{stats.hospitales}</span>
-            <span className="stat-label">hospital{stats.hospitales === 1 ? '' : 'es'}</span>
+            <span className="stat-label">centros de salud</span>
           </div>
         </div>
         <div className="stat-card stat-urgentes">
@@ -157,16 +125,6 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         </div>
       )}
 
-      {puedeMarcar && selected.size > 0 && (
-        <div className="status-line">
-          <span className="status-chip pendiente">
-            {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
-          </span>
-          <button className="claim-btn" disabled={busy} onClick={confirmarEntrega}>Marcar como entregado</button>
-          <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
-        </div>
-      )}
-
       {!loading && filteredItems.length === 0 && (
         <div className="empty">No hay necesidades que coincidan con estos filtros todavía.</div>
       )}
@@ -181,10 +139,6 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           acopioCreds={acopioCreds}
           medicoCreds={medicoCreds}
           fundacionCreds={fundacionCreds}
-          puedeMarcar={puedeMarcar}
-          selected={selected.has(item.id)}
-          onToggle={toggle}
-          disabled={busy}
         />
       ))}
     </div>
