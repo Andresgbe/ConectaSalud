@@ -4,6 +4,10 @@ import HospitalGroup from './HospitalGroup.jsx'
 
 const urgenciaRank = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
 
+function normalizar(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
 export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,11 +34,11 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   }, [])
 
   const filteredItems = useMemo(() => {
-    const txt = filters.texto.trim().toLowerCase()
+    const txt = normalizar(filters.texto.trim())
     return needs.filter((n) => {
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
       if (filters.status && n.estado_cobertura !== filters.status) return false
-      if (txt && !(n.insumo.toLowerCase().includes(txt) || n.hospital.toLowerCase().includes(txt))) return false
+      if (txt && !(normalizar(n.insumo).includes(txt) || normalizar(n.hospital).includes(txt))) return false
       return true
     })
   }, [needs, filters])
