@@ -18,7 +18,7 @@
 *{box-sizing:border-box;}
 html,body,#root{margin:0;padding:0;}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   background:var(--paper);
   color:var(--ink);
   line-height:1.45;
@@ -268,4 +268,17 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
   .item-line .claim-btn { margin-left: 0 !important; margin-top: 6px; width: 100%; }
   .tabs { flex-wrap: wrap; }
   .tabs button { flex: 1; min-width: 45%; font-size: 0.85rem; }
+}
+
+.header-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+.header-text { flex: 1; min-width: 220px; }
+.header-logos { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+.header-logos img:nth-child(1) { height: 76px; width: auto; display: block; }
+.header-logos img:nth-child(2) { height: 76px; width: auto; display: block; }
+
+@media (max-width: 640px) {
+  .header-inner { flex-direction: column; align-items: flex-start; }
+  .header-logos { margin-top: 4px; }
+  .header-logos img:nth-child(1) { height: 58px; }
+  .header-logos img:nth-child(2) { height: 58px; }
 }

@@ -75,9 +75,15 @@ export default function App() {
   return (
     <>
       <header className="top">
-        <div className="wrap">
-          <h1>Reporte de insumos requeridos</h1>
-          <p>Conecta personal médico que necesita insumos con centros de acopio y voluntarios que pueden llevarlos.</p>
+        <div className="wrap header-inner">
+          <div className="header-text">
+            <h1>Reporte de necesidades registradas</h1>
+            <p>Conecta personal médico que necesita insumos con centros de acopio y voluntarios.</p>
+          </div>
+          <div className="header-logos">
+            <img src="/assets/logoucv.png" alt="Universidad Central de Venezuela" />
+            <img src="/assets/medicinaucv.png" alt="Facultad de Medicina UCV" />
+          </div>
         </div>
       </header>
 
@@ -100,12 +106,12 @@ export default function App() {
       <div className="wrap">
         <nav className="tabs">
           <button className={location.pathname === '/' ? 'active' : ''} onClick={() => navigate('/')}>
-            📃 REPORTE DE INSUMOS REQUERIDOS
+             REPORTE DE NECESIDADES REQUERIDAS
           </button>
 
           {medicoCreds && (
             <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
-              🏥 REPORTAR NECESIDAD
+               REPORTAR NECESIDAD
             </button>
           )}
 
