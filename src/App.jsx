@@ -83,7 +83,6 @@ export default function App() {
             </div>
             <div className="header-logos">
               <img src="/assets/logoucv.png" alt="Universidad Central de Venezuela" />
-              <img src="/assets/medicinaucv.png" alt="Facultad de Medicina UCV" />
             </div>
           </div>
           <div className="header-auth">
