@@ -14,8 +14,7 @@ function nuevoItem() {
   return { uid: `item-${itemSeq}`, insumo: '', cantidad: '', urgencia: '' }
 }
 
-export default function NeedForm({ hospital, onPublished }) {
-  const [contacto, setContacto] = useState('')
+export default function NeedForm({ hospital, contacto, onPublished }) {
   const [notas, setNotas] = useState('')
   const [items, setItems] = useState([nuevoItem()])
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
@@ -32,10 +31,6 @@ export default function NeedForm({ hospital, onPublished }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!contacto.trim()) {
-      setStatus({ state: 'err', msg: 'El contacto es obligatorio.' })
-      return
-    }
     if (items.some((it) => !it.insumo.trim())) {
       setStatus({ state: 'err', msg: 'Cada insumo necesita un nombre.' })
       return
@@ -53,7 +48,7 @@ export default function NeedForm({ hospital, onPublished }) {
       ciudad: '',
       insumo: it.insumo.trim(),
       cantidad: it.cantidad.trim(),
-      contacto: contacto.trim(),
+      contacto: contacto, 
       urgencia: it.urgencia,
       notas: notas.trim(),
     }))
@@ -67,7 +62,6 @@ export default function NeedForm({ hospital, onPublished }) {
     }
 
     setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
-    setContacto('')
     setNotas('')
     setItems([nuevoItem()])
     setTimeout(() => onPublished?.(), 900)
@@ -79,12 +73,6 @@ export default function NeedForm({ hospital, onPublished }) {
       <p className="sub">Agrega uno o varios insumos en el mismo reporte. Cada uno se publica por separado para que los centros de acopio puedan llevarlos individualmente.</p>
 
       <form onSubmit={handleSubmit}>
-        <label className="req">Contacto (tel./WhatsApp)</label>
-        <input
-          type="tel" required value={contacto}
-          onChange={(e) => setContacto(e.target.value)}
-          placeholder="Ej: 0414-1234567"
-        />
 
         <label style={{ marginTop: 18 }}>Insumos necesitados</label>
         {items.map((item) => (

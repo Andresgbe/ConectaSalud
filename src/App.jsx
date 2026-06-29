@@ -1,17 +1,25 @@
 import { useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import NeedForm from './components/NeedForm.jsx'
 import NeedsList from './components/NeedsList.jsx'
-import FoodTab from './components/FoodTab.jsx'
 import Login from './components/Login.jsx'
+import Register from './components/Register.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 
-const K_HOSPITAL = 'hospital_creds'
+const K_MEDICO = 'medico_creds'
+const K_ACOPIO = 'acopio_creds'
 const K_ADMIN = 'admin_creds'
 
 export default function App() {
-  const [tab, setTab] = useState('ver')
-  const [hospitalCreds, setHospitalCreds] = useState(() => {
-    const raw = localStorage.getItem(K_HOSPITAL)
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [medicoCreds, setMedicoCreds] = useState(() => {
+    const raw = localStorage.getItem(K_MEDICO)
+    return raw ? JSON.parse(raw) : null
+  })
+  const [acopioCreds, setAcopioCreds] = useState(() => {
+    const raw = localStorage.getItem(K_ACOPIO)
     return raw ? JSON.parse(raw) : null
   })
   const [adminCreds, setAdminCreds] = useState(() => {
@@ -19,88 +27,140 @@ export default function App() {
     return raw ? JSON.parse(raw) : null
   })
 
-  function handleLogin(nombreHospital, nombrePersona, identificador, codigo) {
-    const creds = { nombre: nombreHospital, persona: nombrePersona, identificador, codigo }
-    localStorage.setItem(K_HOSPITAL, JSON.stringify(creds))
-    setHospitalCreds(creds)
-    setTab('pedir')
+  function limpiarSesiones() {
+    localStorage.removeItem(K_MEDICO)
+    localStorage.removeItem(K_ACOPIO)
+    localStorage.removeItem(K_ADMIN)
+    setMedicoCreds(null)
+    setAcopioCreds(null)
+    setAdminCreds(null)
+  }
+
+  function handleMedicoLogin(creds) {
+    limpiarSesiones()
+    localStorage.setItem(K_MEDICO, JSON.stringify(creds))
+    setMedicoCreds(creds)
+    navigate('/reportar')
+  }
+
+  function handleAcopioLogin(creds) {
+    limpiarSesiones()
+    localStorage.setItem(K_ACOPIO, JSON.stringify(creds))
+    setAcopioCreds(creds)
+    navigate('/')
   }
 
   function handleAdminLogin(identificador, codigo) {
+    limpiarSesiones()
     const creds = { identificador, codigo }
     localStorage.setItem(K_ADMIN, JSON.stringify(creds))
     setAdminCreds(creds)
-    setTab('admin')
+    navigate('/admin')
   }
 
   function handleLogout() {
-    localStorage.removeItem(K_HOSPITAL)
-    localStorage.removeItem(K_ADMIN)
-    setHospitalCreds(null)
-    setAdminCreds(null)
-    setTab('ver')
+    limpiarSesiones()
+    navigate('/')
   }
 
-  const sesionActiva = hospitalCreds || adminCreds
+  const sesionActiva = medicoCreds || acopioCreds || adminCreds
+
+  function nombreSesion() {
+    if (adminCreds) return 'ADMIN'
+    if (medicoCreds) return `${medicoCreds.nombre_completo} (${medicoCreds.hospital})`
+    if (acopioCreds) return `${acopioCreds.nombre_completo} (${acopioCreds.nombre_centro})`
+    return ''
+  }
 
   return (
     <>
       <header className="top">
         <div className="wrap">
           <h1>Reporte de insumos requeridos</h1>
-          <p>Conecta hospitales que necesitan insumos médicos con centros de acopio y voluntarios que pueden llevarlos.</p>
+          <p>Conecta personal médico que necesita insumos con centros de acopio y voluntarios que pueden llevarlos.</p>
         </div>
       </header>
 
-      <div className="disclaimer">
-        <div className="wrap">
-          {sesionActiva && (
-            <>
-              Conectado como <b>{adminCreds ? 'ADMIN' : `${hospitalCreds.nombre} (${hospitalCreds.persona})`}</b>
+      <div className="auth-bar">
+        <div className="wrap auth-bar-inner">
+          {sesionActiva ? (
+            <div className="auth-status">
+              Conectado como <b>{nombreSesion()}</b>
               {' · '}<button className="mini-link" onClick={handleLogout}>Cerrar sesión</button>
-            </>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button className="auth-btn" onClick={() => navigate('/login')}>Iniciar sesión</button>
+              <button className="auth-btn primary" onClick={() => navigate('/register')}>Registrarte</button>
+            </div>
           )}
         </div>
       </div>
 
       <div className="wrap">
         <nav className="tabs">
-          <button className={tab === 'ver' ? 'active' : ''} onClick={() => setTab('ver')}>
-            📃REPORTE DE INSUMOS REQUERIDOS
+          <button className={location.pathname === '/' ? 'active' : ''} onClick={() => navigate('/')}>
+            📃 REPORTE DE INSUMOS REQUERIDOS
           </button>
 
-          {hospitalCreds ? (
-            <button className={tab === 'pedir' ? 'active' : ''} onClick={() => setTab('pedir')}>
+          {medicoCreds && (
+            <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
               🏥 REPORTAR NECESIDAD
             </button>
-          ) : !adminCreds ? (
-            <button className={tab === 'pedir' ? 'active' : ''} onClick={() => setTab('pedir')}>
-              📝 REGISTRAR NECESIDAD
-            </button>
-          ) : null}
+          )}
 
-         {/* <button className={tab === 'comida' ? 'active' : ''} onClick={() => setTab('comida')}>
-            🍽️ Comida
-          </button>
-          */}
           {adminCreds && (
-            <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>
+            <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>
               🛠️ Admin
             </button>
           )}
         </nav>
 
-        {tab === 'ver' && <NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} />}
-        {tab === 'pedir' && hospitalCreds && (
-          <NeedForm hospital={hospitalCreds.nombre} onPublished={() => setTab('ver')} />
-        )}
-        {tab === 'pedir' && !hospitalCreds && !adminCreds && (
-          <Login onLogin={handleLogin} onAdminLogin={handleAdminLogin} />
-        )}
-      {/*  
-      {tab === 'comida' && <FoodTab hospitalCreds={hospitalCreds} adminCreds={adminCreds} />} 
-      */}
-        {tab === 'admin' && adminCreds && <AdminPanel adminCreds={adminCreds} />}
+        <Routes>
+          <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds}/>} />
+
+          <Route
+            path="/reportar"
+            element={
+              medicoCreds
+                ? <NeedForm hospital={medicoCreds.hospital} contacto={medicoCreds.telefono} onPublished={() => navigate('/')} />
+                : <Navigate to="/login" replace />
+            }
+          />
+
+          <Route
+            path="/login"
+            element={
+              sesionActiva
+                ? <Navigate to="/" replace />
+                : <Login
+                    onMedicoLogin={handleMedicoLogin}
+                    onAcopioLogin={handleAcopioLogin}
+                    onAdminLogin={handleAdminLogin}
+                    onGoRegistro={() => navigate('/register')}
+                  />
+            }
+          />
+
+          <Route
+            path="/register"
+            element={
+              sesionActiva
+                ? <Navigate to="/" replace />
+                : <Register
+                    onRegistrado={() => navigate('/login')}
+                    onGoLogin={() => navigate('/login')}
+                  />
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={adminCreds ? <AdminPanel adminCreds={adminCreds} /> : <Navigate to="/login" replace />}
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
         <footer className="note">Desarrollada por Andrés Gil, 26/6/2026 - 0412-6127323</footer>
       </div>
