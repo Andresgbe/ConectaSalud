@@ -51,10 +51,10 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGo
 
       <div className="role-switch">
         <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setError('') }}>
-          🩺 Personal médico
+          Personal médico
         </button>
         <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setError('') }}>
-          📦 Centro de acopio
+          Centro de acopio
         </button>
       </div>
 

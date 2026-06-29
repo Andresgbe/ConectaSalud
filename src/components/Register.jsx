@@ -66,10 +66,10 @@ export default function Register({ onRegistrado, onGoLogin }) {
 
       <div className="role-switch">
         <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setStatus({ state: 'idle', msg: '' }) }}>
-          🩺 Personal médico
+          Personal médico
         </button>
         <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setStatus({ state: 'idle', msg: '' }) }}>
-          📦 Centro de acopio
+          Centro de acopio
         </button>
       </div>
 
