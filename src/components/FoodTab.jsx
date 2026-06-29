@@ -19,9 +19,9 @@ function timeAgo(iso) {
   return `hace ${Math.floor(hrs / 24)} d`
 }
 
-export default function FoodTab({ hospitalCreds, adminCreds }) {
+export default function FoodTab({ medicoCreds, adminCreds }) {
   const isAdmin = !!adminCreds
-  const loggedHospital = hospitalCreds?.nombre || null
+  const loggedHospital = medicoCreds?.hospital || null
 
   const [hospitales, setHospitales] = useState([])
   const [estados, setEstados] = useState({})
@@ -78,10 +78,10 @@ export default function FoodTab({ hospitalCreds, adminCreds }) {
   async function guardar() {
     if (!form.perecederos || !form.no_perecederos) return
     setBusy(true)
-    const creds = isAdmin ? adminCreds : hospitalCreds
     const { error } = await supabase.rpc('actualizar_comida', {
-      p_identificador: creds.identificador,
-      p_codigo: creds.codigo,
+      p_telefono: isAdmin ? null : medicoCreds.telefono,
+      p_identificador: isAdmin ? adminCreds.identificador : null,
+      p_codigo: isAdmin ? adminCreds.codigo : null,
       p_hospital: editing,
       p_perecederos: form.perecederos,
       p_no_perecederos: form.no_perecederos,
