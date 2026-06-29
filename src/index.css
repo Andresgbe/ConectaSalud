@@ -212,6 +212,14 @@ button.primary:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
 .claim-form input{flex:1;min-width:140px;}
 .claim-form button{background:var(--teal);color:#fff;border:none;border-radius:7px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;}
 
+.nota-recepcion-input{width:auto;flex:1;min-width:140px;padding:7px 10px;font-size:.85rem;}
+
+.nota-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--ambar-bg);color:var(--ambar);font-weight:700;
+  font-size:.82rem;padding:5px 12px;border-radius:20px;
+}
+
 .empty{text-align:center;color:#777;padding:40px 10px;font-size:.92rem;}
 footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 

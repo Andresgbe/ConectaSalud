@@ -29,17 +29,21 @@ function horaYrelativo(iso) {
 
 export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
   const [busy, setBusy] = useState(false)
+  const [notaAbierta, setNotaAbierta] = useState(false)
+  const [nota, setNota] = useState('')
   const esMiHospital = medicoCreds?.hospital === item.hospital
   const puedeCambiar = !!acopioCreds || !!fundacionCreds || (medicoCreds && esMiHospital)
+  const esUltimoPaso = item.estado_cobertura === 'enviada'
 
   async function avanzar() {
     setBusy(true)
+    const p_nota = esUltimoPaso ? nota.trim() : ''
     if (acopioCreds) {
-      await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
+      await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo, p_nota })
     } else if (fundacionCreds) {
-      await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
+      await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono, p_nota })
     } else if (medicoCreds) {
-      await supabase.rpc('avanzar_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
+      await supabase.rpc('avanzar_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono, p_nota })
     }
     setBusy(false)
     onChanged?.()
@@ -123,6 +127,23 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
           )}
           {item.estado_cobertura !== 'pendiente' && (
             <button className="undo-btn" disabled={busy} onClick={retroceder}>Deshacer</button>
+          )}
+          {item.nota_recepcion && (
+            <span className="nota-chip">📝 {item.nota_recepcion}</span>
+          )}
+          {esUltimoPaso && (
+            notaAbierta ? (
+              <input
+                type="text"
+                className="nota-recepcion-input"
+                placeholder="Nota opcional…"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                autoFocus
+              />
+            ) : (
+              <button type="button" className="mini-link" onClick={() => setNotaAbierta(true)}>Dejar una nota</button>
+            )
           )}
         </div>
       )}
