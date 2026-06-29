@@ -168,6 +168,7 @@ button.primary:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
 .need-card.u-baja::before{background:var(--verde);}
 
 .need-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.item-hospital{font-size:.78rem;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.3px;}
 .need-top h3{margin:0;font-size:1.02rem;}
 .tag{
   font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;

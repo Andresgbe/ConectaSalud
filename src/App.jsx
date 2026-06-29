@@ -128,6 +128,16 @@ export default function App() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
             Reporte de necesidades
           </button>
+          {(medicoCreds || fundacionCreds) && (
+            <button
+              type="button"
+              className={`section-label${(location.pathname === '/reportar' || location.pathname === '/solicitar') ? ' active' : ''}`}
+              onClick={() => navigate(medicoCreds ? '/reportar' : '/solicitar')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              Reportar necesidad
+            </button>
+          )}
           <button
             type="button"
             className={`section-label${location.pathname === '/info' ? ' active' : ''}`}
@@ -146,25 +156,11 @@ export default function App() {
           </button>
         </div>
 
-        {(medicoCreds || adminCreds || fundacionCreds) && (
+        {adminCreds && (
           <nav className="tabs">
-            {medicoCreds && (
-              <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
-                🏥 REPORTAR NECESIDAD
-              </button>
-            )}
-
-            {adminCreds && (
-              <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>
-                🛠️ Admin
-              </button>
-            )}
-
-            {fundacionCreds && (
-              <button className={location.pathname === '/solicitar' ? 'active' : ''} onClick={() => navigate('/solicitar')}>
-                📋 REGISTRAR SOLICITUD
-              </button>
-            )}
+            <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>
+              🛠️ Admin
+            </button>
           </nav>
         )}
 
@@ -175,7 +171,7 @@ export default function App() {
             path="/reportar"
             element={
               medicoCreds
-                ? <NeedForm hospital={medicoCreds.hospital} contacto={medicoCreds.telefono} onPublished={() => navigate('/')} />
+                ? <NeedForm hospital={medicoCreds.hospital} contacto={medicoCreds.telefono} creadoPor={medicoCreds.nombre_completo} onPublished={() => navigate('/')} />
                 : <Navigate to="/login" replace />
             }
           />
@@ -218,7 +214,7 @@ export default function App() {
             path="/solicitar"
             element={
               fundacionCreds
-                ? <FundacionForm contacto={fundacionCreds.telefono} onPublished={() => navigate('/')} />
+                ? <FundacionForm contacto={fundacionCreds.telefono} creadoPor={fundacionCreds.nombre_completo} onPublished={() => navigate('/')} />
                 : <Navigate to="/login" replace />
             }
           />

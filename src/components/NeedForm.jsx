@@ -14,7 +14,8 @@ function nuevoItem() {
   return { uid: `item-${itemSeq}`, insumo: '', cantidad: '', urgencia: '' }
 }
 
-export default function NeedForm({ hospital, contacto, onPublished }) {
+export default function NeedForm({ hospital, contacto, creadoPor, onPublished }) {
+  const [servicio, setServicio] = useState('')
   const [notas, setNotas] = useState('')
   const [items, setItems] = useState([nuevoItem()])
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
@@ -31,6 +32,10 @@ export default function NeedForm({ hospital, contacto, onPublished }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!servicio.trim()) {
+      setStatus({ state: 'err', msg: 'Indica el servicio.' })
+      return
+    }
     if (items.some((it) => !it.insumo.trim())) {
       setStatus({ state: 'err', msg: 'Cada insumo necesita un nombre.' })
       return
@@ -51,6 +56,8 @@ export default function NeedForm({ hospital, contacto, onPublished }) {
       contacto: contacto, 
       urgencia: it.urgencia,
       notas: notas.trim(),
+      servicio: servicio.trim(),
+      creado_por: creadoPor || null,
     }))
 
     const { error } = await supabase.from('necesidades').insert(filas)
@@ -63,6 +70,7 @@ export default function NeedForm({ hospital, contacto, onPublished }) {
 
     setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
     setNotas('')
+    setServicio('')
     setItems([nuevoItem()])
     setTimeout(() => onPublished?.(), 900)
   }
@@ -73,6 +81,9 @@ export default function NeedForm({ hospital, contacto, onPublished }) {
       <p className="sub">Agrega uno o varios insumos en el mismo reporte. Cada uno se publica por separado para que los centros de acopio puedan llevarlos individualmente.</p>
 
       <form onSubmit={handleSubmit}>
+
+        <label className="req">Servicio</label>
+        <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
 
         <label style={{ marginTop: 18 }}>Insumos necesitados</label>
         {items.map((item) => (

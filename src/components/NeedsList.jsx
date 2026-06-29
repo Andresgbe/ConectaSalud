@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
-import HospitalGroup from './HospitalGroup.jsx'
-
-const urgenciaRank = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
+import NeedItem from './NeedItem.jsx'
 
 function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -12,6 +10,10 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
+  const [selected, setSelected] = useState(new Set())
+  const [busy, setBusy] = useState(false)
+
+  const puedeMarcar = !!acopioCreds || !!fundacionCreds
 
   async function loadNeeds() {
     const { data, error } = await supabase
@@ -43,38 +45,55 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     })
   }, [needs, filters])
 
-  // Agrupamos por hospital. Dentro de cada grupo, los insumos se ordenan
-  // del más viejo al más nuevo (orden cronológico de publicación).
-  const groups = useMemo(() => {
-    const map = new Map()
-    for (const item of filteredItems) {
-      if (!map.has(item.hospital)) map.set(item.hospital, [])
-      map.get(item.hospital).push(item)
-    }
-    const arr = Array.from(map.entries()).map(([hospital, items]) => {
-      const ordenados = [...items].sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en))
-      const lastUpdate = Math.max(...items.map((i) => new Date(i.creado_en).getTime()))
-      return { hospital, items: ordenados, lastUpdate }
-    })
-    arr.sort((a, b) => b.lastUpdate - a.lastUpdate)
-    return arr
-  }, [filteredItems])
+  const hospitalesUnicos = useMemo(
+    () => new Set(filteredItems.map((n) => n.hospital)).size,
+    [filteredItems]
+  )
 
   const stats = useMemo(() => ({
     pendientes: filteredItems.filter((n) => n.estado_cobertura === 'pendiente').length,
-    hospitales: groups.length,
+    hospitales: hospitalesUnicos,
     urgentes: filteredItems.filter((n) => n.urgencia === 'urgente').length,
-  }), [filteredItems, groups])
+  }), [filteredItems, hospitalesUnicos])
 
   function setFilter(field, value) {
     setFilters((f) => ({ ...f, [field]: value }))
+  }
+
+  function toggle(id) {
+    setSelected((s) => {
+      const next = new Set(s)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function confirmarEntrega() {
+    if (selected.size === 0) return
+    if (!confirm(`¿Confirmas que vas a entregar ${selected.size} insumo${selected.size === 1 ? '' : 's'}?`)) return
+    setBusy(true)
+    if (acopioCreds) {
+      await supabase.rpc('reclamar_varios', {
+        p_ids: Array.from(selected),
+        p_telefono: acopioCreds.telefono,
+        p_codigo: acopioCreds.codigo,
+      })
+    } else {
+      await supabase.rpc('reclamar_varios_fundacion', {
+        p_ids: Array.from(selected),
+        p_telefono: fundacionCreds.telefono,
+      })
+    }
+    setBusy(false)
+    setSelected(new Set())
+    loadNeeds()
   }
 
   return (
     <div className="panel">
       <h2>Necesidades registradas</h2>
       <p className="sub">
-        Agrupadas por hospital. Marca lo que vas a llevar para que otros no dupliquen el esfuerzo.
+        Ordenadas de la más reciente a la más antigua. Marca lo que vas a llevar para que otros no dupliquen el esfuerzo.
       </p>
 
       <div className="stats-row">
@@ -124,21 +143,49 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           type="text" placeholder="Buscar insumo u hospital…"
           value={filters.texto} onChange={(e) => setFilter('texto', e.target.value)}
         />
-        {/* <button type="button" onClick={loadNeeds}>🔄 Actualizar</button> */}
       </div>
 
       <div className="count-line">
         {loading
           ? 'Cargando…'
-          : `${filteredItems.length} insumo${filteredItems.length === 1 ? '' : 's'} en ${groups.length} hospital${groups.length === 1 ? '' : 'es'}`}
+          : `${filteredItems.length} insumo${filteredItems.length === 1 ? '' : 's'} en ${stats.hospitales} hospital${stats.hospitales === 1 ? '' : 'es'}`}
       </div>
 
-      {!loading && groups.length === 0 && (
+      {!puedeMarcar && stats.pendientes > 0 && (
+        <div className="status-line">
+          <span className="item-sub">Inicia sesión como centro de acopio o fundación para marcar insumos como entregados.</span>
+        </div>
+      )}
+
+      {puedeMarcar && selected.size > 0 && (
+        <div className="status-line">
+          <span className="status-chip pendiente">
+            {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
+          </span>
+          <button className="claim-btn" disabled={busy} onClick={confirmarEntrega}>Marcar como entregado</button>
+          <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
+        </div>
+      )}
+
+      {!loading && filteredItems.length === 0 && (
         <div className="empty">No hay necesidades que coincidan con estos filtros todavía.</div>
       )}
 
-      {groups.map((g) => (
-        <HospitalGroup key={g.hospital} hospital={g.hospital} items={g.items} onChanged={loadNeeds} isAdmin={isAdmin} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} fundacionCreds={fundacionCreds} />
+      {filteredItems.map((item) => (
+        <NeedItem
+          key={item.id}
+          item={item}
+          onChanged={loadNeeds}
+          isAdmin={isAdmin}
+          adminCreds={adminCreds}
+          acopioCreds={acopioCreds}
+          medicoCreds={medicoCreds}
+          fundacionCreds={fundacionCreds}
+          puedeMarcar={puedeMarcar}
+          selected={selected.has(item.id)}
+          onToggle={toggle}
+          disabled={busy}
+        />
       ))}
     </div>
   )

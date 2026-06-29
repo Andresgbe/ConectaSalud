@@ -12,7 +12,6 @@ export default function Register({ onRegistrado, onGoLogin }) {
   const [telefono, setTelefono] = useState('')
   const [correo, setCorreo] = useState('')
   const [nombre, setNombre] = useState('')
-  const [servicio, setServicio] = useState('')
   const [hospCodigo, setHospCodigo] = useState('')
 
   const [telefonoAc, setTelefonoAc] = useState('')
@@ -29,7 +28,7 @@ export default function Register({ onRegistrado, onGoLogin }) {
       p_telefono: telefono.trim(),
       p_correo: correo.trim(),
       p_nombre: nombre.trim(),
-      p_servicio: servicio.trim(),
+      p_servicio: '',
       p_hospital_codigo: hospCodigo.trim(),
     })
     if (error) {
@@ -111,9 +110,6 @@ export default function Register({ onRegistrado, onGoLogin }) {
 
           <label className="req">Nombre y apellido</label>
           <input type="text" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
-
-          <label className="req">Servicio</label>
-          <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
 
           <label className="req">Código del centro solicitante</label>
           <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} />
