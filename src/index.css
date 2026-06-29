@@ -15,6 +15,8 @@
   --verde-bg:#e6f3ea;
   --azul:#1d5fc4;
   --azul-bg:#e6edfb;
+  --pendiente-bg:#fffaf9;
+  --entregado-bg:#f3f8f4;
   --focus:#0c6e62;
 }
 *{box-sizing:border-box;}
@@ -35,6 +37,17 @@ header.top p{margin:0;font-size:.92rem;color:#cfd4e2;max-width:620px;}
 
 .disclaimer{background:#fff;border-bottom:1px solid var(--line);font-size:.82rem;color:#444;padding:10px 16px;}
 .disclaimer b{color:var(--rojo);}
+
+.section-label{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:8px 12px;margin:14px 0 12px;
+  font-size:.85rem;font-weight:600;
+  color:var(--ink);cursor:pointer;
+}
+.section-label svg{width:15px;height:15px;color:var(--teal-dark);flex-shrink:0;}
+.section-label:hover{background:#f3f2ee;}
+.section-label:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
 
 nav.tabs{display:flex;gap:8px;margin:18px 0 16px;}
 nav.tabs button{
@@ -113,9 +126,12 @@ button.primary:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
 .stats-row{display:flex;gap:10px;margin-bottom:14px;}
 .stat-card{
   flex:1;display:flex;align-items:center;gap:10px;min-width:0;
-  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  border:1px solid var(--line);border-radius:10px;
   padding:10px 12px;
 }
+.stat-pendientes{background:#f1f8f4;}
+.stat-hospitales{background:#eef3fc;}
+.stat-urgentes{background:#fdf1f0;}
 .stat-icon-wrap{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -194,9 +210,11 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .item-list{margin:10px 0;}
 .item-row{
   display:flex;gap:10px;align-items:flex-start;
-  padding:10px 0;border-bottom:1px solid var(--line);
+  padding:10px 12px;border-radius:8px;margin-bottom:6px;
 }
-.item-row:last-child{border-bottom:none;}
+.item-row:last-child{margin-bottom:0;}
+.item-row-pendiente{background:var(--pendiente-bg);}
+.item-row-entregado{background:var(--entregado-bg);}
 .item-checkbox{
   width:20px;height:20px;margin-top:2px;flex-shrink:0;cursor:pointer;accent-color:var(--teal);
 }
@@ -204,6 +222,14 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
   width:20px;text-align:center;flex-shrink:0;font-size:.95rem;margin-top:1px;
 }
 .item-content{flex:1;min-width:0;}
+
+.item-status{
+  flex-shrink:0;align-self:flex-start;
+  font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;
+  padding:3px 10px;border-radius:20px;white-space:nowrap;
+}
+.item-status.pendiente{background:#f8d6d3;color:var(--critica);}
+.item-status.entregado{background:#d9f0e1;color:var(--verde);}
 .item-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.95rem;}
 .item-sub{font-size:.8rem;color:#666;margin-top:3px;}
 
@@ -259,32 +285,7 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 }
 .eye-toggle:hover{background:#f3f2ee;color:var(--teal-dark);}
 
-.auth-bar { border-bottom: 1px solid #2a2a2a; padding: 14px 0; }
-.auth-bar-inner { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; }
-.auth-status { font-size: 0.92rem; }
-
-.auth-buttons { display: flex !important; flex-direction: row !important; gap: 8px; flex-wrap: wrap; }
-
-.auth-bar .auth-btn {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  width: auto !important;
-  flex: 0 0 auto !important;
-  padding: 10px 18px !important;
-  margin: 0 !important;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-.auth-bar .auth-btn.primary {
-  background: var(--accent, #2f81f7) !important;
-  border-color: transparent !important;
-  color: #fff !important;
-}
+.auth-buttons { display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; }
 
 .role-switch { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .role-switch button { flex: 1; min-width: 140px; padding: 10px; border-radius: 8px; border: 1px solid #444; background: transparent; cursor: pointer; }
@@ -297,7 +298,6 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .codigo-grande { display: block; font-size: 1.8rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; }
 
 @media (max-width: 640px) {
-  .auth-bar-inner { justify-content: center; text-align: center; }
   .auth-buttons { width: 100%; justify-content: center; }
   .auth-btn { flex: 1; }
   .role-switch button { min-width: 0; font-size: 0.85rem; padding: 10px 6px; }
@@ -309,14 +309,43 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 }
 
 .header-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
-.header-text { flex: 1; min-width: 220px; }
+.header-brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.header-text { min-width: 220px; max-width: 480px; }
 .header-logos { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
 .header-logos img:nth-child(1) { height: 76px; width: auto; display: block; }
 .header-logos img:nth-child(2) { height: 76px; width: auto; display: block; }
 
+.header-auth { flex-shrink: 0; }
+.header-auth .auth-status { font-size: 0.92rem; color: #fff; }
+.header-auth .header-mini-link { color: #cfe9e5; text-decoration: underline; }
+
+.header-auth .auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.92);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.header-auth .auth-btn:hover { background: #fff; }
+
+.header-auth .auth-btn.primary { background: var(--teal); color: #fff; }
+.header-auth .auth-btn.primary:hover { background: var(--teal-dark); }
+
 @media (max-width: 640px) {
-  .header-inner { flex-direction: column; align-items: flex-start; }
+  .header-inner { flex-direction: column; align-items: stretch; gap: 14px; }
+  .header-brand { align-items: flex-start; }
   .header-logos { margin-top: 4px; }
   .header-logos img:nth-child(1) { height: 58px; }
   .header-logos img:nth-child(2) { height: 58px; }
+  .header-auth .auth-buttons { width: 100%; justify-content: center; }
+  .header-auth .auth-status { text-align: center; }
 }

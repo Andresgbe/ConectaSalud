@@ -119,7 +119,7 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
       <>
       <div className="item-list">
         {ordenados.map((it) => (
-          <div className="item-row" key={it.id}>
+          <div className={`item-row item-row-${it.estado_cobertura}`} key={it.id}>
             {it.estado_cobertura === 'pendiente' && puedeMarcar ? (
               <input
                 type="checkbox" className="item-checkbox"
@@ -167,6 +167,9 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
                   )}
               </div>
             </div>
+            <span className={`item-status ${it.estado_cobertura}`}>
+              {STATUS_LABEL[it.estado_cobertura]}
+            </span>
           </div>
         ))}
       </div>

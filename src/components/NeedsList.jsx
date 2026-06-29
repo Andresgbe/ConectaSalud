@@ -120,7 +120,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           type="text" placeholder="Buscar insumo u hospital…"
           value={filters.texto} onChange={(e) => setFilter('texto', e.target.value)}
         />
-        <button type="button" onClick={loadNeeds}>🔄 Actualizar</button>
+        {/* <button type="button" onClick={loadNeeds}>🔄 Actualizar</button> */}
       </div>
 
       <div className="count-line">

@@ -76,51 +76,53 @@ export default function App() {
     <>
       <header className="top">
         <div className="wrap header-inner">
-          <div className="header-text">
-            <h1>Reporte de necesidades registradas</h1>
-            <p>Conecta personal médico que necesita insumos con centros de acopio y voluntarios.</p>
+          <div className="header-brand">
+            <div className="header-text">
+              <h1>Reporte de necesidades registradas</h1>
+              <p>Conecta personal médico que necesita insumos con centros de acopio y voluntarios.</p>
+            </div>
+            <div className="header-logos">
+              <img src="/assets/logoucv.png" alt="Universidad Central de Venezuela" />
+              <img src="/assets/medicinaucv.png" alt="Facultad de Medicina UCV" />
+            </div>
           </div>
-          <div className="header-logos">
-            <img src="/assets/logoucv.png" alt="Universidad Central de Venezuela" />
-            <img src="/assets/medicinaucv.png" alt="Facultad de Medicina UCV" />
+          <div className="header-auth">
+            {sesionActiva ? (
+              <div className="auth-status">
+                Conectado como <b>{nombreSesion()}</b>
+                {' · '}<button className="mini-link header-mini-link" onClick={handleLogout}>Cerrar sesión</button>
+              </div>
+            ) : (
+              <div className="auth-buttons">
+                <button className="auth-btn" onClick={() => navigate('/login')}>Iniciar sesión</button>
+                <button className="auth-btn primary" onClick={() => navigate('/register')}>Registrarte</button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="auth-bar">
-        <div className="wrap auth-bar-inner">
-          {sesionActiva ? (
-            <div className="auth-status">
-              Conectado como <b>{nombreSesion()}</b>
-              {' · '}<button className="mini-link" onClick={handleLogout}>Cerrar sesión</button>
-            </div>
-          ) : (
-            <div className="auth-buttons">
-              <button className="auth-btn" onClick={() => navigate('/login')}>Iniciar sesión</button>
-              <button className="auth-btn primary" onClick={() => navigate('/register')}>Registrarte</button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="wrap">
-        <nav className="tabs">
-          <button className={location.pathname === '/' ? 'active' : ''} onClick={() => navigate('/')}>
-             REPORTE DE NECESIDADES REQUERIDAS
-          </button>
+        <button type="button" className="section-label" onClick={() => navigate('/')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+          Reporte de necesidades
+        </button>
 
-          {medicoCreds && (
-            <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
-               REPORTAR NECESIDAD
-            </button>
-          )}
+        {(medicoCreds || adminCreds) && (
+          <nav className="tabs">
+            {medicoCreds && (
+              <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
+                🏥 REPORTAR NECESIDAD
+              </button>
+            )}
 
-          {adminCreds && (
-            <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>
-              🛠️ Admin
-            </button>
-          )}
-        </nav>
+            {adminCreds && (
+              <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>
+                🛠️ Admin
+              </button>
+            )}
+          </nav>
+        )}
 
         <Routes>
           <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds}/>} />
