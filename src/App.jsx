@@ -5,6 +5,7 @@ import NeedsList from './components/NeedsList.jsx'
 import Login from './components/Login.jsx'
 import Register from './components/Register.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import Info from './components/Info.jsx'
 
 const K_MEDICO = 'medico_creds'
 const K_ACOPIO = 'acopio_creds'
@@ -102,10 +103,24 @@ export default function App() {
       </header>
 
       <div className="wrap">
-        <button type="button" className="section-label" onClick={() => navigate('/')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-          Reporte de necesidades
-        </button>
+        <div className="section-nav">
+          <button
+            type="button"
+            className={`section-label${location.pathname === '/' ? ' active' : ''}`}
+            onClick={() => navigate('/')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            Reporte de necesidades
+          </button>
+          <button
+            type="button"
+            className={`section-label${location.pathname === '/info' ? ' active' : ''}`}
+            onClick={() => navigate('/info')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            ¿Cómo usar la página?
+          </button>
+        </div>
 
         {(medicoCreds || adminCreds) && (
           <nav className="tabs">
@@ -165,7 +180,7 @@ export default function App() {
             path="/admin"
             element={adminCreds ? <AdminPanel adminCreds={adminCreds} /> : <Navigate to="/login" replace />}
           />
-
+          <Route path="/info" element={<Info />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
