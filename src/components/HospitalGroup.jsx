@@ -18,11 +18,11 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds }) {
+export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
   const [selected, setSelected] = useState(new Set())
   const [busy, setBusy] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const puedeMarcar = !!acopioCreds
+  const puedeMarcar = !!acopioCreds || !!fundacionCreds
   const esMiHospital = medicoCreds?.hospital === hospital
 
   const pendientes = items.filter((i) => i.estado_cobertura === 'pendiente')
@@ -54,11 +54,18 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
     if (selected.size === 0) return
     if (!confirm(`¿Confirmas que vas a entregar ${selected.size} insumo${selected.size === 1 ? '' : 's'}?`)) return
     setBusy(true)
-    await supabase.rpc('reclamar_varios', {
-      p_ids: Array.from(selected),
-      p_telefono: acopioCreds.telefono,
-      p_codigo: acopioCreds.codigo,
-    })
+    if (acopioCreds) {
+      await supabase.rpc('reclamar_varios', {
+        p_ids: Array.from(selected),
+        p_telefono: acopioCreds.telefono,
+        p_codigo: acopioCreds.codigo,
+      })
+    } else {
+      await supabase.rpc('reclamar_varios_fundacion', {
+        p_ids: Array.from(selected),
+        p_telefono: fundacionCreds.telefono,
+      })
+    }
     setBusy(false)
     setSelected(new Set())
     onChanged?.()
@@ -66,11 +73,18 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
 
   async function undo(id) {
     setBusy(true)
-    await supabase.rpc('deshacer_necesidad', {
-      p_id: id,
-      p_telefono: acopioCreds.telefono,
-      p_codigo: acopioCreds.codigo,
-    })
+    if (acopioCreds) {
+      await supabase.rpc('deshacer_necesidad', {
+        p_id: id,
+        p_telefono: acopioCreds.telefono,
+        p_codigo: acopioCreds.codigo,
+      })
+    } else {
+      await supabase.rpc('deshacer_necesidad_fundacion', {
+        p_id: id,
+        p_telefono: fundacionCreds.telefono,
+      })
+    }
     setBusy(false)
     onChanged?.()
   }
@@ -92,6 +106,17 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
   await supabase.rpc('eliminar_necesidad_medico', {
     p_id: id,
     p_telefono: medicoCreds.telefono,
+  })
+  setBusy(false)
+  onChanged?.()
+}
+
+  async function eliminarFundacion(id) {
+  if (!confirm('¿Eliminar este insumo permanentemente?')) return
+  setBusy(true)
+  await supabase.rpc('eliminar_necesidad_fundacion', {
+    p_id: id,
+    p_telefono: fundacionCreds.telefono,
   })
   setBusy(false)
   onChanged?.()
@@ -159,10 +184,10 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
                     )}
                   </>
                 )}
-                {(isAdmin || esMiHospital) && (
+                {(isAdmin || esMiHospital || (fundacionCreds && it.contacto === fundacionCreds.telefono)) && (
                     <>
                       {' · '}
-                      <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin ? eliminar(it.id) : eliminarPropio(it.id))}>🗑️ Eliminar</button>
+                      <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin ? eliminar(it.id) : esMiHospital ? eliminarPropio(it.id) : eliminarFundacion(it.id))}>🗑️ Eliminar</button>
                     </>
                   )}
               </div>

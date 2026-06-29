@@ -4,7 +4,7 @@ import HospitalGroup from './HospitalGroup.jsx'
 
 const urgenciaRank = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
 
-export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds }) {
+export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
@@ -134,7 +134,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
       )}
 
       {groups.map((g) => (
-        <HospitalGroup key={g.hospital} hospital={g.hospital} items={g.items} onChanged={loadNeeds} isAdmin={isAdmin} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} />
+        <HospitalGroup key={g.hospital} hospital={g.hospital} items={g.items} onChanged={loadNeeds} isAdmin={isAdmin} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} fundacionCreds={fundacionCreds} />
       ))}
     </div>
   )

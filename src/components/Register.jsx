@@ -4,6 +4,11 @@ import { supabase } from '../supabaseClient.js'
 export default function Register({ onRegistrado, onGoLogin }) {
   const [rol, setRol] = useState('medico')
 
+  const [telefonoFu, setTelefonoFu] = useState('')
+  const [correoFu, setCorreoFu] = useState('')
+  const [nombreFu, setNombreFu] = useState('')
+  const [codigoFundacion, setCodigoFundacion] = useState('')
+
   const [telefono, setTelefono] = useState('')
   const [correo, setCorreo] = useState('')
   const [nombre, setNombre] = useState('')
@@ -60,16 +65,39 @@ export default function Register({ onRegistrado, onGoLogin }) {
     setTimeout(() => onRegistrado?.(), 1400)
   }
 
+  async function handleSubmitFundacion(e) {
+    e.preventDefault()
+    setStatus({ state: 'loading', msg: 'Registrando…' })
+    const { data, error } = await supabase.rpc('registrar_personal_fundacion', {
+      p_telefono: telefonoFu.trim(),
+      p_correo: correoFu.trim(),
+      p_nombre: nombreFu.trim(),
+      p_fundacion_codigo: codigoFundacion.trim(),
+    })
+    if (error) {
+      setStatus({ state: 'err', msg: `⚠️ ${error.message}` })
+      return
+    }
+    if (!data) {
+      setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' })
+      return
+    }
+    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu correo y el código de la fundación.` })
+    setTimeout(() => onRegistrado?.(), 1400)
+  }
   return (
     <div className="panel">
       <h2>Registrarte</h2>
 
       <div className="role-switch">
         <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setStatus({ state: 'idle', msg: '' }) }}>
-          Personal médico
+          Reportar necesidad
         </button>
         <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setStatus({ state: 'idle', msg: '' }) }}>
           Centro de acopio
+        </button>
+        <button type="button" className={rol === 'fundacion' ? 'active' : ''} onClick={() => { setRol('fundacion'); setStatus({ state: 'idle', msg: '' }) }}>
+          Fundación
         </button>
       </div>
 
@@ -87,8 +115,27 @@ export default function Register({ onRegistrado, onGoLogin }) {
           <label className="req">Servicio</label>
           <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
 
-          <label className="req">Código del hospital</label>
+          <label className="req">Código del centro solicitante</label>
           <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} />
+
+          <button type="submit" className="primary" disabled={status.state === 'loading'}>
+            {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}
+          </button>
+          {status.msg && <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>}
+        </form>
+      ) : rol === 'fundacion' ? (
+        <form onSubmit={handleSubmitFundacion}>
+          <label className="req">Nombre y apellido</label>
+          <input type="text" required value={nombreFu} onChange={(e) => setNombreFu(e.target.value)} />
+
+          <label className="req">Número de teléfono</label>
+          <input type="tel" required value={telefonoFu} onChange={(e) => setTelefonoFu(e.target.value)} placeholder="Ej: 0414-1234567" />
+
+          <label className="req">Correo</label>
+          <input type="email" required value={correoFu} onChange={(e) => setCorreoFu(e.target.value)} />
+
+          <label className="req">Código de la fundación</label>
+          <input type="text" required value={codigoFundacion} onChange={(e) => setCodigoFundacion(e.target.value)} />
 
           <button type="submit" className="primary" disabled={status.state === 'loading'}>
             {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}

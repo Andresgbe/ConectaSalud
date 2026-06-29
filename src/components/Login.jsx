@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGoRegistro }) {
+export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onAdminLogin, onGoRegistro }) {
   const [rol, setRol] = useState('medico')
   const [correo, setCorreo] = useState('')
   const [codigo, setCodigo] = useState('')
@@ -30,6 +30,19 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGo
       } else {
         onMedicoLogin(perfil)
       }
+    } else if (rol === 'fundacion') {
+      const { data, error: err } = await supabase.rpc('login_fundacion_por_correo', {
+        p_correo: correo.trim(),
+        p_codigo: codigo.trim(),
+      })
+      setBusy(false)
+      const perfil = data?.[0]
+      if (err || !perfil) {
+        console.error(err)
+        setError('Correo o código incorrecto.')
+        return
+      }
+      onFundacionLogin(perfil)
     } else {
       const { data, error: err } = await supabase.rpc('login_centro_acopio_por_correo', {
         p_correo: correo.trim(),
@@ -51,10 +64,13 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGo
 
       <div className="role-switch">
         <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setError('') }}>
-          Personal médico
+          Reportar necesidad
         </button>
         <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setError('') }}>
           Centro de acopio
+        </button>
+        <button type="button" className={rol === 'fundacion' ? 'active' : ''} onClick={() => { setRol('fundacion'); setError('') }}>
+          Fundación
         </button>
       </div>
 
@@ -65,6 +81,13 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGo
         {rol === 'medico' && (
           <>
             <label className="req">Código del hospital</label>
+            <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+          </>
+        )}
+
+        {rol === 'fundacion' && (
+          <>
+            <label className="req">Código de acceso</label>
             <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
           </>
         )}

@@ -7,10 +7,12 @@ import Register from './components/Register.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import Info from './components/Info.jsx'
 import FoodTab from './components/FoodTab.jsx'
+import FundacionForm from './components/FundacionForm.jsx'
 
 const K_MEDICO = 'medico_creds'
 const K_ACOPIO = 'acopio_creds'
 const K_ADMIN = 'admin_creds'
+const K_FUNDACION = 'fundacion_creds'
 
 export default function App() {
   const navigate = useNavigate()
@@ -28,14 +30,20 @@ export default function App() {
     const raw = localStorage.getItem(K_ADMIN)
     return raw ? JSON.parse(raw) : null
   })
+  const [fundacionCreds, setFundacionCreds] = useState(() => {
+    const raw = localStorage.getItem(K_FUNDACION)
+    return raw ? JSON.parse(raw) : null
+  })
 
   function limpiarSesiones() {
     localStorage.removeItem(K_MEDICO)
     localStorage.removeItem(K_ACOPIO)
     localStorage.removeItem(K_ADMIN)
+    localStorage.removeItem(K_FUNDACION)
     setMedicoCreds(null)
     setAcopioCreds(null)
     setAdminCreds(null)
+    setFundacionCreds(null)
   }
 
   function handleMedicoLogin(creds) {
@@ -52,6 +60,13 @@ export default function App() {
     navigate('/')
   }
 
+  function handleFundacionLogin(creds) {
+    limpiarSesiones()
+    localStorage.setItem(K_FUNDACION, JSON.stringify(creds))
+    setFundacionCreds(creds)
+    navigate('/')
+  }
+
   function handleAdminLogin(identificador, codigo) {
     limpiarSesiones()
     const creds = { identificador, codigo }
@@ -65,15 +80,15 @@ export default function App() {
     navigate('/')
   }
 
-  const sesionActiva = medicoCreds || acopioCreds || adminCreds
+  const sesionActiva = medicoCreds || acopioCreds || adminCreds || fundacionCreds
 
   function nombreSesion() {
     if (adminCreds) return 'ADMIN'
     if (medicoCreds) return `${medicoCreds.nombre_completo} (${medicoCreds.hospital})`
     if (acopioCreds) return `${acopioCreds.nombre_completo} (${acopioCreds.nombre_centro})`
+    if (fundacionCreds) return `${fundacionCreds.nombre_completo} (${fundacionCreds.nombre_fundacion})`
     return ''
-  }
-
+  } 
   return (
     <>
       <header className="top">
@@ -131,7 +146,7 @@ export default function App() {
           </button>
         </div>
 
-        {(medicoCreds || adminCreds) && (
+        {(medicoCreds || adminCreds || fundacionCreds) && (
           <nav className="tabs">
             {medicoCreds && (
               <button className={location.pathname === '/reportar' ? 'active' : ''} onClick={() => navigate('/reportar')}>
@@ -144,11 +159,17 @@ export default function App() {
                 🛠️ Admin
               </button>
             )}
+
+            {fundacionCreds && (
+              <button className={location.pathname === '/solicitar' ? 'active' : ''} onClick={() => navigate('/solicitar')}>
+                📋 REGISTRAR SOLICITUD
+              </button>
+            )}
           </nav>
         )}
 
         <Routes>
-          <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds}/>} />
+          <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} fundacionCreds={fundacionCreds}/>} />
 
           <Route
             path="/reportar"
@@ -167,6 +188,7 @@ export default function App() {
                 : <Login
                     onMedicoLogin={handleMedicoLogin}
                     onAcopioLogin={handleAcopioLogin}
+                    onFundacionLogin={handleFundacionLogin}
                     onAdminLogin={handleAdminLogin}
                     onGoRegistro={() => navigate('/register')}
                   />
@@ -191,6 +213,15 @@ export default function App() {
           />
           <Route path="/info" element={<Info />} />
           <Route path="/comida" element={<FoodTab medicoCreds={medicoCreds} adminCreds={adminCreds} />} />
+
+          <Route
+            path="/solicitar"
+            element={
+              fundacionCreds
+                ? <FundacionForm contacto={fundacionCreds.telefono} onPublished={() => navigate('/')} />
+                : <Navigate to="/login" replace />
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
