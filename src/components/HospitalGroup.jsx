@@ -18,18 +18,16 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds }) {
+export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds }) {
   const [selected, setSelected] = useState(new Set())
-  const [claiming, setClaiming] = useState(false)
-  const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
+  const puedeMarcar = !!acopioCreds
+  const esMiHospital = medicoCreds?.hospital === hospital
 
   const pendientes = items.filter((i) => i.estado_cobertura === 'pendiente')
   const entregados = items
     .filter((i) => i.estado_cobertura === 'entregado')
     .sort((a, b) => new Date(b.actualizado_en) - new Date(a.actualizado_en))
-
-  // Pendientes arriba, entregados siempre al final.
   const ordenados = [...pendientes, ...entregados]
 
   const topUrgencia = pendientes.length > 0
@@ -51,20 +49,27 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
     setSelected(new Set(pendientes.map((i) => i.id)))
   }
 
-  async function confirmClaimBatch() {
-    if (!name.trim() || selected.size === 0) return
+  async function confirmarEntrega() {
+    if (selected.size === 0) return
+    if (!confirm(`¿Confirmas que vas a entregar ${selected.size} insumo${selected.size === 1 ? '' : 's'}?`)) return
     setBusy(true)
-    await supabase.rpc('reclamar_varios', { p_ids: Array.from(selected), p_nombre: name.trim() })
+    await supabase.rpc('reclamar_varios', {
+      p_ids: Array.from(selected),
+      p_telefono: acopioCreds.telefono,
+      p_codigo: acopioCreds.codigo,
+    })
     setBusy(false)
-    setClaiming(false)
     setSelected(new Set())
-    setName('')
     onChanged?.()
   }
 
   async function undo(id) {
     setBusy(true)
-    await supabase.rpc('deshacer_necesidad', { p_id: id })
+    await supabase.rpc('deshacer_necesidad', {
+      p_id: id,
+      p_telefono: acopioCreds.telefono,
+      p_codigo: acopioCreds.codigo,
+    })
     setBusy(false)
     onChanged?.()
   }
@@ -80,6 +85,16 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
     setBusy(false)
     onChanged?.()
   }
+  async function eliminarPropio(id) {
+  if (!confirm('¿Eliminar este insumo permanentemente?')) return
+  setBusy(true)
+  await supabase.rpc('eliminar_necesidad_medico', {
+    p_id: id,
+    p_telefono: medicoCreds.telefono,
+  })
+  setBusy(false)
+  onChanged?.()
+}
 
   return (
     <div className={`need-card u-${topUrgencia}`}>
@@ -93,37 +108,27 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
       <div className="item-list">
         {ordenados.map((it) => (
           <div className="item-row" key={it.id}>
-            {it.estado_cobertura === 'pendiente' ? (
+            {it.estado_cobertura === 'pendiente' && puedeMarcar ? (
               <input
                 type="checkbox" className="item-checkbox"
                 checked={selected.has(it.id)}
                 onChange={() => toggle(it.id)}
               />
             ) : (
-              <span className="item-checkbox-placeholder">✅</span>
+              <span className="item-checkbox-placeholder">
+                {it.estado_cobertura === 'entregado' ? '✅' : ''}
+              </span>
             )}
             <div className="item-content">
               <div className="item-line">
                 <b>{it.insumo}</b>{it.cantidad ? ` — ${it.cantidad}` : ''}
                 <span className={`tag-mini u-${it.urgencia}`}>{URGENCIA_LABEL[it.urgencia]}</span>
-                {it.estado_cobertura === 'pendiente' && selected.has(it.id) && !claiming && (
-                  <button className="claim-btn" style={{ marginLeft: 8 }} onClick={() => setClaiming(true)}>
+                {it.estado_cobertura === 'pendiente' && puedeMarcar && selected.has(it.id) && (
+                  <button className="claim-btn" style={{ marginLeft: 8 }} disabled={busy} onClick={confirmarEntrega}>
                     Marcar como entregado
                   </button>
                 )}
               </div>
-
-              {it.estado_cobertura === 'pendiente' && selected.has(it.id) && claiming && (
-                <div className="claim-form open">
-                  <input
-                    type="text" placeholder="Tu nombre u organización"
-                    value={name} onChange={(e) => setName(e.target.value)}
-                    autoFocus
-                  />
-                  <button disabled={busy} onClick={confirmClaimBatch}>Confirmar</button>
-                  <button type="button" className="undo-btn" onClick={() => setClaiming(false)}>Cancelar</button>
-                </div>
-              )}
               {it.notas && <div className="need-notas">{it.notas}</div>}
               <div className="item-sub">
                 {horaYrelativo(it.creado_en)}
@@ -134,37 +139,48 @@ export default function HospitalGroup({ hospital, items, onChanged, isAdmin, adm
                     <span className="status-chip entregado">
                       {STATUS_LABEL.entregado}{it.cubierto_por ? ` · ${it.cubierto_por}` : ''}
                     </span>
-                    {' · '}
-                    <button className="mini-link" disabled={busy} onClick={() => undo(it.id)}>Deshacer</button>
+                    {puedeMarcar && (
+                      <>
+                        {' · '}
+                        <button className="mini-link" disabled={busy} onClick={() => undo(it.id)}>Deshacer</button>
+                      </>
+                    )}
                   </>
                 )}
-                {isAdmin && (
-                  <>
-                    {' · '}
-                    <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => eliminar(it.id)}>🗑️ Eliminar</button>
-                  </>
-                )}
+                {(isAdmin || esMiHospital) && (
+                    <>
+                      {' · '}
+                      <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin ? eliminar(it.id) : eliminarPropio(it.id))}>🗑️ Eliminar</button>
+                    </>
+                  )}
               </div>
             </div>
           </div>
         ))}
       </div>
-        {pendientes.length > 0 && selected.size === 0 && (
-                <div className="status-line">
-                  <button className="claim-btn" onClick={selectAllPendientes}>
-                    Seleccionar todos los pendientes
-                  </button>
-                </div>
-              )}
 
-              {selected.size > 0 && !claiming && (
-                <div className="status-line">
-                  <span className="status-chip pendiente">
-                    {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
-                  </span>
-                  <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
-                </div>
-              )}
+      {!puedeMarcar && pendientes.length > 0 && (
+        <div className="status-line">
+          <span className="item-sub">Inicia sesión como centro de acopio para marcar insumos como entregados.</span>
+        </div>
+      )}
+
+      {puedeMarcar && pendientes.length > 0 && selected.size === 0 && (
+        <div className="status-line">
+          <button className="claim-btn" onClick={selectAllPendientes}>
+            Seleccionar todos los pendientes
+          </button>
+        </div>
+      )}
+
+      {puedeMarcar && selected.size > 0 && (
+        <div className="status-line">
+          <span className="status-chip pendiente">
+            {selected.size} seleccionado{selected.size === 1 ? '' : 's'}
+          </span>
+          <button className="undo-btn" onClick={() => setSelected(new Set())}>Limpiar selección</button>
+        </div>
+      )}
     </div>
   )
 }

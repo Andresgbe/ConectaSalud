@@ -1,82 +1,83 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-export default function Login({ onLogin, onAdminLogin }) {
-  const [stage, setStage] = useState('credenciales')
-  const [identificador, setIdentificador] = useState('')
+export default function Login({ onMedicoLogin, onAcopioLogin, onAdminLogin, onGoRegistro }) {
+  const [rol, setRol] = useState('medico')
+  const [correo, setCorreo] = useState('')
   const [codigo, setCodigo] = useState('')
-  const [nombrePersona, setNombrePersona] = useState('')
-  const [hospitalVerificado, setHospitalVerificado] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function handleCredenciales(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setBusy(true)
     setError('')
-    const { data, error: err } = await supabase.rpc('verificar_login', {
-      p_identificador: identificador.trim(),
-      p_codigo: codigo.trim(),
-    })
-    setBusy(false)
-    if (err || !data) {
-      setError('Identificador o código incorrecto.')
-      return
-    }
-    if (data === 'ADMIN') {
-      onAdminLogin(identificador.trim().toUpperCase(), codigo.trim())
-      return
-    }
-    setHospitalVerificado(data)
-    setStage('nombre')
-  }
 
-  async function handleNombre(e) {
-    e.preventDefault()
-    if (!nombrePersona.trim()) return
-    setBusy(true)
-    await supabase.from('logs_acceso').insert([{
-      hospital: hospitalVerificado,
-      nombre_persona: nombrePersona.trim(),
-    }])
-    setBusy(false)
-    onLogin(hospitalVerificado, nombrePersona.trim(), identificador.trim().toUpperCase(), codigo.trim())
+    if (rol === 'medico') {
+      const { data, error: err } = await supabase.rpc('login_medico_o_admin', {
+        p_correo: correo.trim(),
+        p_codigo: codigo.trim(),
+      })
+      setBusy(false)
+      const perfil = data?.[0]
+      if (err || !perfil) {
+        console.error(err)
+        setError('Correo o código incorrecto.')
+        return
+      }
+      if (perfil.tipo === 'admin') {
+        onAdminLogin('ADMIN', codigo.trim())
+      } else {
+        onMedicoLogin(perfil)
+      }
+    } else {
+      const { data, error: err } = await supabase.rpc('login_centro_acopio_por_correo', {
+        p_correo: correo.trim(),
+      })
+      setBusy(false)
+      const perfil = data?.[0]
+      if (err || !perfil) {
+        console.error(err)
+        setError('No encontramos un centro de acopio registrado con ese correo.')
+        return
+      }
+      onAcopioLogin({ ...perfil, codigo: perfil.codigo_acceso })
+    }
   }
 
   return (
     <div className="panel">
-      <h2>Iniciar sesión como hospital</h2>
-      <p className="sub">Solo necesario para el personal del hospital que va a reportar necesidades.</p>
+      <h2>Iniciar sesión</h2>
 
-      <form onSubmit={handleCredenciales}>
-        <label className="req">Identificador</label>
-        <input type="text" required value={identificador} onChange={(e) => setIdentificador(e.target.value)} />
-        <label className="req">Código</label>
-        <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+      <div className="role-switch">
+        <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setError('') }}>
+          🩺 Personal médico
+        </button>
+        <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setError('') }}>
+          📦 Centro de acopio
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <label className="req">Correo</label>
+        <input type="email" required value={correo} onChange={(e) => setCorreo(e.target.value)} />
+
+        {rol === 'medico' && (
+          <>
+            <label className="req">Código del hospital</label>
+            <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+          </>
+        )}
+
         <button type="submit" className="primary" disabled={busy}>
           {busy ? 'Verificando…' : 'Ingresar'}
         </button>
         {error && <div className="msg err">{error}</div>}
       </form>
 
-      {stage === 'nombre' && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h2 style={{ marginTop: 0 }}>¿Quién está ingresando?</h2>
-            <p className="sub">Hospital: {hospitalVerificado}</p>
-            <form onSubmit={handleNombre}>
-              <input
-                type="text" required autoFocus value={nombrePersona}
-                onChange={(e) => setNombrePersona(e.target.value)}
-                placeholder="Ejemplo: Antonio Guzmán"
-              />
-              <button type="submit" className="primary" disabled={busy}>
-                {busy ? 'Ingresando…' : 'Continuar'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <p className="sub" style={{ marginTop: 14 }}>
+        ¿No tienes cuenta? <button type="button" className="mini-link" onClick={onGoRegistro}>Regístrate aquí</button>
+      </p>
     </div>
   )
 }
