@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
 
 export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onMasterLogin, onAdminLogin, onGoRegistro }) {
   const [prefijo, setPrefijo] = useState('0414')

@@ -89,13 +89,13 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
 
   return (
     <div className="panel">
-      <h2>Registrar necesidad para un hospital</h2>
-      <p className="sub">Selecciona el hospital y agrega uno o varios insumos en el mismo reporte.</p>
+      <h2>Registrar necesidad para un centro de salud</h2>
+      <p className="sub">Selecciona el centro de salud y agrega uno o varios insumos en el mismo reporte.</p>
 
       <form onSubmit={handleSubmit}>
-        <label className="req">Hospital</label>
+        <label className="req">Centro de salud</label>
         <select required value={hospital} onChange={(e) => setHospital(e.target.value)}>
-          <option value="">Selecciona un hospital…</option>
+          <option value="">Selecciona un centro de salud</option>
           {hospitales.map((h) => (
             <option key={h.nombre} value={h.nombre}>{h.nombre}</option>
           ))}

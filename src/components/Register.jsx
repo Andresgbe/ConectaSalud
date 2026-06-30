@@ -61,7 +61,7 @@ export default function Register({ onRegistrado, onGoLogin }) {
         <label className="req">Número de teléfono</label>
         <TelefonoInput prefijo={prefijo} setPrefijo={setPrefijo} numero={numero} setNumero={setNumero} />
 
-        <label className="req">Código del hospital</label>
+        <label className="req">Código del acceso</label>
         <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} placeholder="Ej: HUC2026" />
 
         <button type="submit" className="primary" disabled={status.state === 'loading'}>

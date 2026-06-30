@@ -98,7 +98,7 @@ export default function FoodTab({ medicoCreds, adminCreds }) {
 
   return (
     <div className="panel">
-      <h2>Estado de alimentos por hospital</h2>
+      <h2>Estado de alimentos por centro de salud</h2>
       <p className="sub">Indica si cada hospital tiene alimentos perecederos y no perecederos, o si se están agotando.</p>
 
       <div className="filters">
