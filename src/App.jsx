@@ -17,6 +17,7 @@ const K_ACOPIO = 'acopio_creds'
 const K_ADMIN = 'admin_creds'
 const K_FUNDACION = 'fundacion_creds'
 const K_MASTER = 'master_creds'
+const K_SUBADMIN = 'subadmin_creds'
 
 export default function App() {
   const navigate = useNavigate()
@@ -42,6 +43,10 @@ export default function App() {
     const raw = localStorage.getItem(K_MASTER)
     return raw ? JSON.parse(raw) : null
   })
+  const [subadminCreds, setSubadminCreds] = useState(() => {
+    const raw = localStorage.getItem(K_SUBADMIN)
+    return raw ? JSON.parse(raw) : null
+  })
 
   function limpiarSesiones() {
     localStorage.removeItem(K_MEDICO)
@@ -49,11 +54,13 @@ export default function App() {
     localStorage.removeItem(K_ADMIN)
     localStorage.removeItem(K_FUNDACION)
     localStorage.removeItem(K_MASTER)
+    localStorage.removeItem(K_SUBADMIN)
     setMedicoCreds(null)
     setAcopioCreds(null)
     setAdminCreds(null)
     setFundacionCreds(null)
     setMasterCreds(null)
+    setSubadminCreds(null)
   }
 
   function handleMedicoLogin(creds) {
@@ -84,6 +91,13 @@ export default function App() {
     navigate('/master')
   }
 
+  function handleSubadminLogin(creds) {
+    limpiarSesiones()
+    localStorage.setItem(K_SUBADMIN, JSON.stringify(creds))
+    setSubadminCreds(creds)
+    navigate('/')
+  }
+
   function handleAdminLogin(identificador, codigo) {
     limpiarSesiones()
     const creds = { identificador, codigo }
@@ -97,11 +111,12 @@ export default function App() {
     navigate('/')
   }
 
-  const sesionActiva = medicoCreds || acopioCreds || adminCreds || fundacionCreds || masterCreds
+  const sesionActiva = medicoCreds || acopioCreds || adminCreds || fundacionCreds || masterCreds || subadminCreds
 
   function nombreSesion() {
     if (adminCreds) return 'ADMIN'
     if (masterCreds) return `${masterCreds.nombre_completo} (Master)`
+    if (subadminCreds) return `${subadminCreds.nombre_completo} (Subadmin)`
     if (medicoCreds) return `${medicoCreds.nombre_completo} (${medicoCreds.hospital})`
     if (acopioCreds) return `${acopioCreds.nombre_completo} (${acopioCreds.nombre_centro})`
     if (fundacionCreds) return `${fundacionCreds.nombre_completo} (${fundacionCreds.nombre_fundacion})`
@@ -146,7 +161,7 @@ export default function App() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
             Reporte de necesidades
           </button>
-          {(medicoCreds || fundacionCreds || masterCreds) && (
+          {(medicoCreds || fundacionCreds || masterCreds || subadminCreds) && (
             <button
               type="button"
               className={`section-label${(location.pathname === '/reportar' || location.pathname === '/solicitar') ? ' active' : ''}`}
@@ -193,7 +208,7 @@ export default function App() {
         )}
 
         <Routes>
-          <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} fundacionCreds={fundacionCreds} masterCreds={masterCreds}/>} />
+          <Route path="/" element={<NeedsList isAdmin={!!adminCreds} adminCreds={adminCreds} acopioCreds={acopioCreds} medicoCreds={medicoCreds} fundacionCreds={fundacionCreds} masterCreds={masterCreds} subadminCreds={subadminCreds}/>} />
 
           <Route
             path="/reportar"
@@ -214,6 +229,7 @@ export default function App() {
                     onAcopioLogin={handleAcopioLogin}
                     onFundacionLogin={handleFundacionLogin}
                     onMasterLogin={handleMasterLogin}
+                    onSubadminLogin={handleSubadminLogin}
                     onAdminLogin={handleAdminLogin}
                     onGoRegistro={() => navigate('/register')}
                   />
@@ -246,6 +262,8 @@ export default function App() {
                 ? <FundacionForm contacto={fundacionCreds.telefono} creadoPor={fundacionCreds.nombre_completo} onPublished={() => navigate('/')} />
                 : masterCreds
                 ? <FundacionForm contacto={masterCreds.telefono} creadoPor={masterCreds.nombre_completo} onPublished={() => navigate('/')} />
+                : subadminCreds
+                ? <FundacionForm contacto={subadminCreds.telefono} creadoPor={subadminCreds.nombre_completo} onPublished={() => navigate('/')} />
                 : <Navigate to="/login" replace />
             }
           />

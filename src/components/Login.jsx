@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient.js'
 
 const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
 
-export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onMasterLogin, onAdminLogin, onGoRegistro }) {
+export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onMasterLogin, onSubadminLogin, onAdminLogin, onGoRegistro }) {
   const [prefijo, setPrefijo] = useState('0414')
   const [numero, setNumero] = useState('')
   const [codigo, setCodigo] = useState('')
@@ -30,6 +30,7 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, 
       const perfil = { ...data[0], telefono, codigo: data[0].codigo_acceso }
       setBusy(false)
       if (perfil.tipo === 'master') return onMasterLogin(perfil)
+      if (perfil.tipo === 'subadmin') return onSubadminLogin(perfil)
       if (perfil.tipo === 'medico') return onMedicoLogin(perfil)
       if (perfil.tipo === 'acopio') return onAcopioLogin(perfil)
       if (perfil.tipo === 'fundacion') return onFundacionLogin(perfil)
@@ -74,7 +75,7 @@ export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, 
           required
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
-          placeholder="Ej: HUC2026"
+          placeholder="Ej: XXX2020"
         />
 
         <button type="submit" className="primary" disabled={busy}>

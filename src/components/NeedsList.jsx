@@ -6,12 +6,12 @@ function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
-export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds }) {
+export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds }) {
   const [verDeshabilitadas, setVerDeshabilitadas] = useState(false)
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
-  const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds || !!masterCreds
+  const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds || !!masterCreds || !!subadminCreds
 
   async function loadNeeds() {
     const { data, error } = await supabase
@@ -109,6 +109,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         <select value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
           <option value="">Todo estado de cobertura</option>
           <option value="pendiente">Pendiente</option>
+          <option value="en_proceso">En proceso</option>
           <option value="lista_para_salir">Lista para salir</option>
           <option value="enviada">En camino</option>
           <option value="recibida">Recibida</option>
@@ -146,10 +147,11 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           medicoCreds={medicoCreds}
           fundacionCreds={fundacionCreds}
           masterCreds={masterCreds}
+          subadminCreds={subadminCreds}
         />
       ))}
 
-      {masterCreds && (
+      {(masterCreds || subadminCreds) && (
         <div className="master-seccion" style={{ marginTop: 20 }}>
           <button type="button" className="master-seccion-header" onClick={() => setVerDeshabilitadas(v => !v)}>
             <span>🚫 Solicitudes deshabilitadas ({deshabilitadas.length})</span>

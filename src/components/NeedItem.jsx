@@ -9,12 +9,14 @@ const URGENCIA_LABEL = {
 }
 const STATUS_LABEL = {
   pendiente: 'Pendiente',
+  en_proceso: 'En proceso',
   lista_para_salir: 'Lista para salir',
   enviada: 'En camino',
   recibida: 'Recibida',
 }
 const SIGUIENTE_LABEL = {
-  pendiente: 'Marcar lista para salir',
+  pendiente: 'Marcar en proceso',
+  en_proceso: 'Marcar lista para salir',
   lista_para_salir: 'Marcar en camino',
   enviada: 'Confirmar recibida',
 }
@@ -27,27 +29,45 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds }) {
+export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
   const [nota, setNota] = useState('')
+  const [transAbierto, setTransAbierto] = useState(false)
+  const [transNombre, setTransNombre] = useState('')
+  const [transTel, setTransTel] = useState('')
+
   const esMiHospital = medicoCreds?.hospital === item.hospital
-  const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || (medicoCreds && esMiHospital)
+  const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && esMiHospital)
   const esUltimoPaso = item.estado_cobertura === 'enviada'
+  const vaACamino = item.estado_cobertura === 'lista_para_salir'
 
   async function avanzar() {
+    // Paso lista_para_salir → enviada exige datos del transportista
+    if (vaACamino) {
+      if (!transNombre.trim() || transTel.trim().length < 7) {
+        alert('Indica el nombre y teléfono (mínimo 7 dígitos) de quien lo va a llevar.')
+        return
+      }
+    }
     setBusy(true)
     const p_nota = esUltimoPaso ? nota.trim() : ''
+    const tn = vaACamino ? transNombre.trim() : null
+    const tt = vaACamino ? transTel.trim() : null
+
     if (masterCreds) {
-      await supabase.rpc('avanzar_estado_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+      await supabase.rpc('avanzar_estado_master', { p_id: item.id, p_master_telefono: masterCreds.telefono, p_nota, p_trans_nombre: tn, p_trans_telefono: tt })
+    } else if (subadminCreds) {
+      await supabase.rpc('avanzar_estado_subadmin', { p_id: item.id, p_telefono: subadminCreds.telefono, p_nota, p_trans_nombre: tn, p_trans_telefono: tt })
     } else if (acopioCreds) {
-      await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo, p_nota })
+      await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo, p_nota, p_trans_nombre: tn, p_trans_telefono: tt })
     } else if (fundacionCreds) {
-      await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono, p_nota })
+      await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono, p_nota, p_trans_nombre: tn, p_trans_telefono: tt })
     } else if (medicoCreds) {
-      await supabase.rpc('avanzar_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono, p_nota })
+      await supabase.rpc('avanzar_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono, p_nota, p_trans_nombre: tn, p_trans_telefono: tt })
     }
     setBusy(false)
+    setTransAbierto(false); setTransNombre(''); setTransTel('')
     onChanged?.()
   }
 
@@ -55,6 +75,8 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     setBusy(true)
     if (masterCreds) {
       await supabase.rpc('retroceder_estado_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    } else if (subadminCreds) {
+      await supabase.rpc('retroceder_estado_subadmin', { p_id: item.id, p_telefono: subadminCreds.telefono })
     } else if (acopioCreds) {
       await supabase.rpc('retroceder_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
     } else if (fundacionCreds) {
@@ -69,15 +91,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   async function eliminar() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
-    await supabase.rpc('admin_eliminar_necesidad', {
-      p_admin_id: adminCreds.identificador,
-      p_admin_codigo: adminCreds.codigo,
-      p_id: item.id,
-    })
+    await supabase.rpc('admin_eliminar_necesidad', { p_admin_id: adminCreds.identificador, p_admin_codigo: adminCreds.codigo, p_id: item.id })
     setBusy(false)
     onChanged?.()
   }
-
   async function eliminarPropio() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
@@ -85,7 +102,6 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     setBusy(false)
     onChanged?.()
   }
-
   async function eliminarFundacion() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
@@ -93,7 +109,6 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     setBusy(false)
     onChanged?.()
   }
-
   async function eliminarMaster() {
     if (!confirm('¿Eliminar este insumo permanentemente?')) return
     setBusy(true)
@@ -104,24 +119,25 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
   async function toggleDeshabilitada() {
     setBusy(true)
-    await supabase.rpc('master_toggle_deshabilitada', {
-      p_id: item.id,
-      p_master_telefono: masterCreds.telefono,
-      p_deshabilitada: !item.deshabilitada,
-    })
+    if (masterCreds) {
+      await supabase.rpc('master_toggle_deshabilitada', { p_id: item.id, p_master_telefono: masterCreds.telefono, p_deshabilitada: !item.deshabilitada })
+    } else if (subadminCreds) {
+      await supabase.rpc('subadmin_toggle_deshabilitada', { p_id: item.id, p_telefono: subadminCreds.telefono, p_deshabilitada: !item.deshabilitada })
+    }
     setBusy(false)
     onChanged?.()
   }
 
+  const puedeDeshabilitar = !!masterCreds || !!subadminCreds
   const puedeEliminar = isAdmin || !!masterCreds || esMiHospital || (fundacionCreds && item.contacto === fundacionCreds.telefono)
 
   return (
-    <div className={`need-card u-${item.urgencia}`}>
+    <div className={`need-card estado-bg-${item.estado_cobertura}`}>
       <div className="need-top">
         <span className="item-hospital">{item.hospital}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className={`item-status ${item.estado_cobertura}`}>{STATUS_LABEL[item.estado_cobertura]}</span>
-          {masterCreds && (
+          {puedeDeshabilitar && (
             <button
               type="button"
               className="mini-link"
@@ -148,6 +164,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         {item.contacto && <> · 📞 {item.contacto}</>}
         {item.creado_por && <> · {item.creado_por}</>}
         {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <> · {item.cubierto_por}</>}
+        {item.transportista_nombre && <> · 🚚 {item.transportista_nombre} ({item.transportista_telefono})</>}
         {false && puedeEliminar && (
           <>
             {' · '}
@@ -158,9 +175,22 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
       {puedeCambiar && (
         <div className="status-line">
-          {item.estado_cobertura !== 'recibida' && (
+          {item.estado_cobertura !== 'recibida' && !vaACamino && (
             <button className="claim-btn" disabled={busy} onClick={avanzar}>{SIGUIENTE_LABEL[item.estado_cobertura]}</button>
           )}
+
+          {vaACamino && !transAbierto && (
+            <button className="claim-btn" disabled={busy} onClick={() => setTransAbierto(true)}>{SIGUIENTE_LABEL[item.estado_cobertura]}</button>
+          )}
+          {vaACamino && transAbierto && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+              <input type="text" className="nota-recepcion-input" placeholder="Nombre de quien lo lleva" value={transNombre} onChange={(e) => setTransNombre(e.target.value)} autoFocus />
+              <input type="text" inputMode="numeric" className="nota-recepcion-input" placeholder="Teléfono" value={transTel} onChange={(e) => setTransTel(e.target.value.replace(/\D/g, '').slice(0, 11))} />
+              <button className="claim-btn" disabled={busy} onClick={avanzar}>Confirmar en camino</button>
+              <button className="undo-btn" disabled={busy} onClick={() => setTransAbierto(false)}>Cancelar</button>
+            </div>
+          )}
+
           {item.estado_cobertura !== 'pendiente' && (
             <button className="undo-btn" disabled={busy} onClick={retroceder}>Deshacer</button>
           )}
@@ -169,14 +199,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
           )}
           {esUltimoPaso && (
             notaAbierta ? (
-              <input
-                type="text"
-                className="nota-recepcion-input"
-                placeholder="Nota opcional…"
-                value={nota}
-                onChange={(e) => setNota(e.target.value)}
-                autoFocus
-              />
+              <input type="text" className="nota-recepcion-input" placeholder="Nota opcional…" value={nota} onChange={(e) => setNota(e.target.value)} autoFocus />
             ) : (
               <button type="button" className="mini-link" onClick={() => setNotaAbierta(true)}>Dejar una nota</button>
             )

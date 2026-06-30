@@ -26,7 +26,7 @@ export default function Register({ onRegistrado, onGoLogin }) {
   const [prefijo, setPrefijo] = useState('0414')
   const [numero, setNumero] = useState('')
   const [nombre, setNombre] = useState('')
-  const [hospCodigo, setHospCodigo] = useState('')
+  const [codigo, setCodigo] = useState('')
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
 
   async function handleSubmit(e) {
@@ -37,16 +37,14 @@ export default function Register({ onRegistrado, onGoLogin }) {
     }
     setStatus({ state: 'loading', msg: 'Registrando…' })
     const telefono = prefijo + numero
-    const { data, error } = await supabase.rpc('registrar_personal_medico', {
+    const { data, error } = await supabase.rpc('registrar_unificado', {
       p_telefono: telefono,
-      p_correo: '',
       p_nombre: nombre.trim(),
-      p_servicio: '',
-      p_hospital_codigo: hospCodigo.trim(),
+      p_codigo: codigo.trim(),
     })
     if (error) { setStatus({ state: 'err', msg: `⚠️ ${error.message}` }); return }
     if (!data) { setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' }); return }
-    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu teléfono y el código del hospital.` })
+    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu teléfono y el código.` })
     setTimeout(() => onRegistrado?.(), 1400)
   }
 
@@ -61,8 +59,8 @@ export default function Register({ onRegistrado, onGoLogin }) {
         <label className="req">Número de teléfono</label>
         <TelefonoInput prefijo={prefijo} setPrefijo={setPrefijo} numero={numero} setNumero={setNumero} />
 
-        <label className="req">Código del acceso</label>
-        <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} placeholder="Ej: HUC2026" />
+        <label className="req">Código de acceso</label>
+        <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ej: XXX2020" />
 
         <button type="submit" className="primary" disabled={status.state === 'loading'}>
           {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}

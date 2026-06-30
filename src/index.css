@@ -247,9 +247,16 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
   padding:3px 10px;border-radius:20px;white-space:nowrap;
 }
 .item-status.pendiente{background:#f8d6d3;color:var(--critica);}
+.item-status.en_proceso{background:#fde3cf;color:#9a4a00;}
 .item-status.lista_para_salir{background:var(--ambar-bg);color:var(--ambar);}
 .item-status.enviada{background:var(--azul-bg);color:var(--azul);}
 .item-status.recibida{background:#d9f0e1;color:var(--verde);}
+
+.need-card.estado-bg-pendiente{background:#fdf3f2;}
+.need-card.estado-bg-en_proceso{background:#fdf6ef;}
+.need-card.estado-bg-lista_para_salir{background:#fdfaef;}
+.need-card.estado-bg-enviada{background:#eef4fc;}
+.need-card.estado-bg-recibida{background:#eef8f1;}
 .item-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.95rem;}
 .item-sub{font-size:.8rem;color:#666;margin-top:3px;}
 
