@@ -170,18 +170,18 @@ export default function App() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
             Comida
           </button>
+          {masterCreds && (
+            <button
+              type="button"
+              className={`section-label${location.pathname === '/master' ? ' active' : ''}`}
+              onClick={() => navigate('/master')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Panel Master
+            </button>
+          )}
         </div>
 
-        {masterCreds && (
-          <button
-            type="button"
-            className={`section-label${location.pathname === '/master' ? ' active' : ''}`}
-            onClick={() => navigate('/master')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Panel Master
-          </button>
-        )}
         {adminCreds && (
           <nav className="tabs">
             <button className={location.pathname === '/admin' ? 'active' : ''} onClick={() => navigate('/admin')}>

@@ -102,13 +102,37 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     onChanged?.()
   }
 
+  async function toggleDeshabilitada() {
+    setBusy(true)
+    await supabase.rpc('master_toggle_deshabilitada', {
+      p_id: item.id,
+      p_master_telefono: masterCreds.telefono,
+      p_deshabilitada: !item.deshabilitada,
+    })
+    setBusy(false)
+    onChanged?.()
+  }
+
   const puedeEliminar = isAdmin || !!masterCreds || esMiHospital || (fundacionCreds && item.contacto === fundacionCreds.telefono)
 
   return (
     <div className={`need-card u-${item.urgencia}`}>
       <div className="need-top">
         <span className="item-hospital">{item.hospital}</span>
-        <span className={`item-status ${item.estado_cobertura}`}>{STATUS_LABEL[item.estado_cobertura]}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className={`item-status ${item.estado_cobertura}`}>{STATUS_LABEL[item.estado_cobertura]}</span>
+          {masterCreds && (
+            <button
+              type="button"
+              className="mini-link"
+              style={{ color: item.deshabilitada ? 'var(--verde)' : 'var(--rojo)', fontSize: '.75rem' }}
+              disabled={busy}
+              onClick={toggleDeshabilitada}
+            >
+              {item.deshabilitada ? 'Rehabilitar' : 'Deshabilitar'}
+            </button>
+          )}
+        </span>
       </div>
 
       <div className="item-line">

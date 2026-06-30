@@ -7,6 +7,7 @@ function normalizar(s) {
 }
 
 export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds }) {
+  const [verDeshabilitadas, setVerDeshabilitadas] = useState(false)
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
@@ -35,12 +36,15 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   const filteredItems = useMemo(() => {
     const txt = normalizar(filters.texto.trim())
     return needs.filter((n) => {
+      if (n.deshabilitada) return false
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
       if (filters.status && n.estado_cobertura !== filters.status) return false
       if (txt && !(normalizar(n.insumo).includes(txt) || normalizar(n.hospital).includes(txt))) return false
       return true
     })
   }, [needs, filters])
+
+  const deshabilitadas = useMemo(() => needs.filter((n) => n.deshabilitada), [needs])
 
   const hospitalesUnicos = useMemo(
     () => new Set(filteredItems.map((n) => n.hospital)).size,
@@ -144,6 +148,33 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           masterCreds={masterCreds}
         />
       ))}
+
+      {masterCreds && (
+        <div className="master-seccion" style={{ marginTop: 20 }}>
+          <button type="button" className="master-seccion-header" onClick={() => setVerDeshabilitadas(v => !v)}>
+            <span>🚫 Solicitudes deshabilitadas ({deshabilitadas.length})</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{verDeshabilitadas ? '−' : '+'}</span>
+          </button>
+          {verDeshabilitadas && (
+            <div className="master-seccion-body">
+              {deshabilitadas.length === 0 && <div className="empty">No hay solicitudes deshabilitadas.</div>}
+              {deshabilitadas.map((item) => (
+                <NeedItem
+                  key={item.id}
+                  item={item}
+                  onChanged={loadNeeds}
+                  isAdmin={isAdmin}
+                  adminCreds={adminCreds}
+                  acopioCreds={acopioCreds}
+                  medicoCreds={medicoCreds}
+                  fundacionCreds={fundacionCreds}
+                  masterCreds={masterCreds}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
