@@ -76,6 +76,7 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
 
     setStatus({ state: 'loading', msg: 'Publicando…' })
 
+    const loteId = crypto.randomUUID()
     const filas = items.map((it) => ({
       hospital,
       estado: 'Caracas',
@@ -89,6 +90,7 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
       creado_por: creadoPor || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
+      lote_id: loteId,
     }))
 
     const { error } = await supabase.from('necesidades').insert(filas)
