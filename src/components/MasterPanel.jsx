@@ -33,6 +33,8 @@ export default function MasterPanel({ masterCreds }) {
 
   const [editandoA, setEditandoA] = useState(null)
   const [formA, setFormA] = useState({ codigo_acceso: '' })
+  const [nuevoA, setNuevoA] = useState({ nombre_completo: '', prefijo: '0414', numero: '', nombre_centro: '', codigo_acceso: '' })
+  const [mostrarNuevoA, setMostrarNuevoA] = useState(false)
   const [msgA, setMsgA] = useState('')
 
   const [editandoF, setEditandoF] = useState(null)
@@ -87,6 +89,30 @@ export default function MasterPanel({ masterCreds }) {
       p_master_telefono: tel, p_accion: 'toggle_activo',
       p_hospital_id: h.id, p_activo: !h.activo
     })
+    cargar()
+  }
+
+  async function crearAcopio() {
+    if (nuevoA.numero.length !== 7) { setMsgA('⚠️ El número debe tener 7 dígitos.'); return }
+    if (!nuevoA.nombre_completo.trim() || !nuevoA.nombre_centro.trim() || !nuevoA.codigo_acceso.trim()) {
+      setMsgA('⚠️ Nombre, nombre del centro y código son obligatorios.'); return
+    }
+    const { data, error } = await supabase.rpc('master_crear_acopio', {
+      p_master_telefono: tel,
+      p_telefono: nuevoA.prefijo + nuevoA.numero,
+      p_nombre_completo: nuevoA.nombre_completo.trim(),
+      p_nombre_centro: nuevoA.nombre_centro.trim(),
+      p_codigo_acceso: nuevoA.codigo_acceso.trim(),
+    })
+    if (error) { setMsgA('⚠️ ' + error.message); return }
+    setNuevoA({ nombre_completo: '', prefijo: '0414', numero: '', nombre_centro: '', codigo_acceso: '' })
+    setMostrarNuevoA(false); setMsgA(''); cargar()
+  }
+
+  async function eliminarAcopio(a) {
+    if (!confirm(`¿Eliminar permanentemente "${a.nombre_centro}"? Esta acción no se puede deshacer.`)) return
+    const { error } = await supabase.rpc('master_eliminar_acopio', { p_master_telefono: tel, p_acopio_id: a.id })
+    if (error) { setMsgA('⚠️ ' + error.message); return }
     cargar()
   }
 
@@ -221,6 +247,39 @@ export default function MasterPanel({ masterCreds }) {
       </Seccion>
 
       <Seccion titulo={`Centros de acopio (${acopios.length})`} icono="📦">
+        {mostrarNuevoA ? (
+          <div className="insumo-item" style={{ marginBottom: 10 }}>
+            <label>Nombre y apellido</label>
+            <input type="text" value={nuevoA.nombre_completo}
+              onChange={(e) => setNuevoA(s => ({ ...s, nombre_completo: e.target.value }))} />
+            <label>Teléfono</label>
+            <div className="telefono-row">
+              <select value={nuevoA.prefijo} onChange={(e) => setNuevoA(s => ({ ...s, prefijo: e.target.value }))}>
+                {PREFIJOS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <input type="text" inputMode="numeric" maxLength={7} placeholder="1234567"
+                value={nuevoA.numero}
+                onChange={(e) => setNuevoA(s => ({ ...s, numero: e.target.value.replace(/\D/g, '').slice(0, 7) }))}
+                onPaste={(e) => e.preventDefault()} />
+            </div>
+            <label>Nombre del centro</label>
+            <input type="text" value={nuevoA.nombre_centro}
+              onChange={(e) => setNuevoA(s => ({ ...s, nombre_centro: e.target.value }))}
+              placeholder="Ej: Anatómico" />
+            <label>Código de acceso</label>
+            <input type="text" value={nuevoA.codigo_acceso}
+              onChange={(e) => setNuevoA(s => ({ ...s, codigo_acceso: e.target.value }))}
+              placeholder="Ej: AC2026" />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="cover-btn" onClick={crearAcopio}>Crear</button>
+              <button className="undo-btn" onClick={() => { setMostrarNuevoA(false); setMsgA('') }}>Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button className="add-item-btn" style={{ marginBottom: 10 }} onClick={() => setMostrarNuevoA(true)}>
+            + Nuevo centro de acopio
+          </button>
+        )}
         {msgA && <div className="msg err">{msgA}</div>}
         {acopios.length === 0 && <div className="empty">Sin centros registrados.</div>}
         {acopios.map((a) => (
@@ -251,6 +310,10 @@ export default function MasterPanel({ masterCreds }) {
                   style={{ color: a.activo ? 'var(--rojo)' : 'var(--verde)' }}
                   onClick={() => toggleAcopio(a)}>
                   {a.activo ? 'Desactivar' : 'Activar'}
+                </button>
+                {' · '}
+                <button className="mini-link" style={{ color: 'var(--rojo)' }} onClick={() => eliminarAcopio(a)}>
+                  Eliminar
                 </button>
               </div>
             )}

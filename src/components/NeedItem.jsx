@@ -158,18 +158,25 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
       {item.notas && <div className="need-notas">{item.notas}</div>}
 
-      <div className="item-sub">
-        {horaYrelativo(item.creado_en)}
-        {item.servicio && <> · {item.servicio}</>}
-        {item.contacto && <> · 📞 {item.contacto}</>}
-        {item.creado_por && <> · {item.creado_por}</>}
-        {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <> · {item.cubierto_por}</>}
-        {item.transportista_nombre && <> · 🚚 {item.transportista_nombre} ({item.transportista_telefono})</>}
+      <div className="item-sub item-sub-vertical">
+        <div>{horaYrelativo(item.creado_en)}</div>
+        {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
+        {(item.receptor_telefono || item.receptor_telefono_2) && (
+          <div>
+            {item.receptor_telefono && <><b>📞 Recibe:</b> {item.receptor_telefono}</>}
+            {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
+          </div>
+        )}
+        {item.contacto && <div>{item.contacto}</div>}
+        {item.creado_por && <div>{item.creado_por}</div>}
+        {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
+        {item.transportista_nombre && (
+          <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
+        )}
         {false && puedeEliminar && (
-          <>
-            {' · '}
+          <div>
             <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin || masterCreds ? (masterCreds ? eliminarMaster() : eliminar()) : esMiHospital ? eliminarPropio() : eliminarFundacion())}>🗑️ Eliminar</button>
-          </>
+          </div>
         )}
       </div>
 

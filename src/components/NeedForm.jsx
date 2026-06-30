@@ -7,6 +7,26 @@ const URGENCIA_OPCIONES = [
   ['mediana', '🟡 Mediana'],
   ['baja', '🟢 Baja'],
 ]
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+
+function TelefonoInput({ prefijo, setPrefijo, numero, setNumero, placeholder }) {
+  return (
+    <div className="telefono-row">
+      <select value={prefijo} onChange={(e) => setPrefijo(e.target.value)}>
+        {PREFIJOS.map((p) => <option key={p} value={p}>{p}</option>)}
+      </select>
+      <input
+        type="text"
+        inputMode="numeric"
+        maxLength={7}
+        placeholder={placeholder || '1234567'}
+        value={numero}
+        onChange={(e) => setNumero(e.target.value.replace(/\D/g, '').slice(0, 7))}
+        onPaste={(e) => e.preventDefault()}
+      />
+    </div>
+  )
+}
 
 let itemSeq = 0
 function nuevoItem() {
@@ -16,6 +36,11 @@ function nuevoItem() {
 
 export default function NeedForm({ hospital, contacto, creadoPor, onPublished }) {
   const [servicio, setServicio] = useState('')
+  const [prefRecibe, setPrefRecibe] = useState('0414')
+  const [numRecibe, setNumRecibe] = useState('')
+  const [prefRecibe2, setPrefRecibe2] = useState('0414')
+  const [numRecibe2, setNumRecibe2] = useState('')
+  const [mostrarRecibe2, setMostrarRecibe2] = useState(false)
   const [notas, setNotas] = useState('')
   const [items, setItems] = useState([nuevoItem()])
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
@@ -34,6 +59,10 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
     e.preventDefault()
     if (!servicio.trim()) {
       setStatus({ state: 'err', msg: 'Indica el servicio.' })
+      return
+    }
+    if (numRecibe.length !== 7) {
+      setStatus({ state: 'err', msg: 'Indica el teléfono de quién recibe (7 dígitos).' })
       return
     }
     if (items.some((it) => !it.insumo.trim())) {
@@ -58,6 +87,8 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
       notas: notas.trim(),
       servicio: servicio.trim(),
       creado_por: creadoPor || null,
+      receptor_telefono: prefRecibe + numRecibe,
+      receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
     }))
 
     const { error } = await supabase.from('necesidades').insert(filas)
@@ -71,6 +102,9 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
     setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
     setNotas('')
     setServicio('')
+    setNumRecibe('')
+    setNumRecibe2('')
+    setMostrarRecibe2(false)
     setItems([nuevoItem()])
     setTimeout(() => onPublished?.(), 900)
   }
@@ -84,6 +118,20 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
 
         <label className="req">Servicio</label>
         <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
+
+        <label className="req">¿Quién recibe?</label>
+        <TelefonoInput prefijo={prefRecibe} setPrefijo={setPrefRecibe} numero={numRecibe} setNumero={setNumRecibe} />
+
+        {mostrarRecibe2 ? (
+          <>
+            <label>Teléfono de contacto 2 (opcional)</label>
+            <TelefonoInput prefijo={prefRecibe2} setPrefijo={setPrefRecibe2} numero={numRecibe2} setNumero={setNumRecibe2} />
+          </>
+        ) : (
+          <button type="button" className="mini-link" style={{ marginTop: 8 }} onClick={() => setMostrarRecibe2(true)}>
+            + Agregar un teléfono de contacto adicional
+          </button>
+        )}
 
         <label style={{ marginTop: 18 }}>Insumos necesitados</label>
         {items.map((item) => (
