@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import NeedForm from './components/NeedForm.jsx'
 import NeedsList from './components/NeedsList.jsx'
@@ -256,6 +257,7 @@ export default function App() {
         <footer className="note">Desarrollada por Andrés Gil, 26/6/2026 - 0412-6127323</footer>
       </div>
       <Analytics />
+      <SpeedInsights />
     </>
   )
 }
