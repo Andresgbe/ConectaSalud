@@ -1,96 +1,81 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onAdminLogin, onGoRegistro }) {
-  const [rol, setRol] = useState('medico')
-  const [correo, setCorreo] = useState('')
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+
+export default function Login({ onMedicoLogin, onAcopioLogin, onFundacionLogin, onMasterLogin, onAdminLogin, onGoRegistro }) {
+  const [prefijo, setPrefijo] = useState('0414')
+  const [numero, setNumero] = useState('')
   const [codigo, setCodigo] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const telefono = prefijo + numero
+
   async function handleSubmit(e) {
     e.preventDefault()
+    if (numero.length !== 7) {
+      setError('El número debe tener 7 dígitos.')
+      return
+    }
     setBusy(true)
     setError('')
 
-    if (rol === 'medico') {
-      const { data, error: err } = await supabase.rpc('login_medico_o_admin', {
-        p_correo: correo.trim(),
-        p_codigo: codigo.trim(),
-      })
+    const { data, error: err } = await supabase.rpc('login_unificado_telefono', {
+      p_telefono: telefono,
+      p_codigo: codigo.trim(),
+    })
+
+    if (!err && data?.[0]) {
+      const perfil = { ...data[0], telefono, codigo: data[0].codigo_acceso }
       setBusy(false)
-      const perfil = data?.[0]
-      if (err || !perfil) {
-        console.error(err)
-        setError('Correo o código incorrecto.')
-        return
-      }
-      if (perfil.tipo === 'admin') {
-        onAdminLogin('ADMIN', codigo.trim())
-      } else {
-        onMedicoLogin(perfil)
-      }
-    } else if (rol === 'fundacion') {
-      const { data, error: err } = await supabase.rpc('login_fundacion_por_correo', {
-        p_correo: correo.trim(),
-        p_codigo: codigo.trim(),
-      })
-      setBusy(false)
-      const perfil = data?.[0]
-      if (err || !perfil) {
-        console.error(err)
-        setError('Correo o código incorrecto.')
-        return
-      }
-      onFundacionLogin(perfil)
-    } else {
-      const { data, error: err } = await supabase.rpc('login_centro_acopio_por_correo', {
-        p_correo: correo.trim(),
-      })
-      setBusy(false)
-      const perfil = data?.[0]
-      if (err || !perfil) {
-        console.error(err)
-        setError('No encontramos un centro de acopio registrado con ese correo.')
-        return
-      }
-      onAcopioLogin({ ...perfil, codigo: perfil.codigo_acceso })
+      if (perfil.tipo === 'master') return onMasterLogin(perfil)
+      if (perfil.tipo === 'medico') return onMedicoLogin(perfil)
+      if (perfil.tipo === 'acopio') return onAcopioLogin(perfil)
+      if (perfil.tipo === 'fundacion') return onFundacionLogin(perfil)
     }
+
+    const { data: adminData, error: adminErr } = await supabase.rpc('login_medico_o_admin', {
+      p_correo: telefono,
+      p_codigo: codigo.trim(),
+    })
+    setBusy(false)
+    if (!adminErr && adminData?.[0]?.tipo === 'admin') {
+      return onAdminLogin('ADMIN', codigo.trim())
+    }
+
+    setError('Teléfono o código incorrecto.')
   }
 
   return (
     <div className="panel">
       <h2>Iniciar sesión</h2>
 
-      <div className="role-switch">
-        <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setError('') }}>
-          Reportar necesidad
-        </button>
-        <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setError('') }}>
-          Centro de acopio
-        </button>
-        <button type="button" className={rol === 'fundacion' ? 'active' : ''} onClick={() => { setRol('fundacion'); setError('') }}>
-          Fundación
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit}>
-        <label className="req">Correo</label>
-        <input type="email" required value={correo} onChange={(e) => setCorreo(e.target.value)} />
+        <label className="req">Número de teléfono</label>
+        <div className="telefono-row">
+          <select value={prefijo} onChange={(e) => setPrefijo(e.target.value)}>
+            {PREFIJOS.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={7}
+            placeholder="1234567"
+            value={numero}
+            onChange={(e) => setNumero(e.target.value.replace(/\D/g, '').slice(0, 7))}
+            onPaste={(e) => e.preventDefault()}
+          />
+        </div>
 
-        {rol === 'medico' && (
-          <>
-            <label className="req">Código del hospital</label>
-            <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-          </>
-        )}
-
-        {rol === 'fundacion' && (
-          <>
-            <label className="req">Código de acceso</label>
-            <input type="text" required value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-          </>
-        )}
+        <label className="req">Código de acceso</label>
+        <input
+          type="text"
+          required
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+          placeholder="Ej: HUC2026"
+        />
 
         <button type="submit" className="primary" disabled={busy}>
           {busy ? 'Verificando…' : 'Ingresar'}

@@ -6,11 +6,11 @@ function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
-export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
+export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds }) {
   const [needs, setNeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
-  const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds
+  const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds || !!masterCreds
 
   async function loadNeeds() {
     const { data, error } = await supabase
@@ -105,7 +105,9 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         <select value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
           <option value="">Todo estado de cobertura</option>
           <option value="pendiente">Pendiente</option>
-          <option value="entregado">Entregado</option>
+          <option value="lista_para_salir">Lista para salir</option>
+          <option value="enviada">En camino</option>
+          <option value="recibida">Recibida</option>
         </select>
         <input
           type="text" placeholder="Buscar insumo u hospital…"
@@ -139,6 +141,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           acopioCreds={acopioCreds}
           medicoCreds={medicoCreds}
           fundacionCreds={fundacionCreds}
+          masterCreds={masterCreds}
         />
       ))}
     </div>

@@ -27,18 +27,20 @@ function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds }) {
+export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
   const [nota, setNota] = useState('')
   const esMiHospital = medicoCreds?.hospital === item.hospital
-  const puedeCambiar = !!acopioCreds || !!fundacionCreds || (medicoCreds && esMiHospital)
+  const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || (medicoCreds && esMiHospital)
   const esUltimoPaso = item.estado_cobertura === 'enviada'
 
   async function avanzar() {
     setBusy(true)
     const p_nota = esUltimoPaso ? nota.trim() : ''
-    if (acopioCreds) {
+    if (masterCreds) {
+      await supabase.rpc('avanzar_estado_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    } else if (acopioCreds) {
       await supabase.rpc('avanzar_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo, p_nota })
     } else if (fundacionCreds) {
       await supabase.rpc('avanzar_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono, p_nota })
@@ -51,7 +53,9 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
   async function retroceder() {
     setBusy(true)
-    if (acopioCreds) {
+    if (masterCreds) {
+      await supabase.rpc('retroceder_estado_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    } else if (acopioCreds) {
       await supabase.rpc('retroceder_estado_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
     } else if (fundacionCreds) {
       await supabase.rpc('retroceder_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
@@ -90,7 +94,15 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     onChanged?.()
   }
 
-  const puedeEliminar = isAdmin || esMiHospital || (fundacionCreds && item.contacto === fundacionCreds.telefono)
+  async function eliminarMaster() {
+    if (!confirm('¿Eliminar este insumo permanentemente?')) return
+    setBusy(true)
+    await supabase.rpc('master_eliminar_necesidad', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    setBusy(false)
+    onChanged?.()
+  }
+
+  const puedeEliminar = isAdmin || !!masterCreds || esMiHospital || (fundacionCreds && item.contacto === fundacionCreds.telefono)
 
   return (
     <div className={`need-card u-${item.urgencia}`}>
@@ -115,7 +127,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         {puedeEliminar && (
           <>
             {' · '}
-            <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin ? eliminar() : esMiHospital ? eliminarPropio() : eliminarFundacion())}>🗑️ Eliminar</button>
+            <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin || masterCreds ? (masterCreds ? eliminarMaster() : eliminar()) : esMiHospital ? eliminarPropio() : eliminarFundacion())}>🗑️ Eliminar</button>
           </>
         )}
       </div>

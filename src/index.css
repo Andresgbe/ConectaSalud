@@ -295,6 +295,10 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .food-pick label.sel-suficiente{border-color:var(--verde);background:var(--verde-bg);color:var(--verde);}
 
 .contacto-row{display:flex;gap:8px;align-items:center;}
+
+.telefono-row{display:flex;gap:8px;}
+.telefono-row select{flex:0 0 auto;width:94px;}
+.telefono-row input{flex:1;}
 .contacto-row input{flex:1;}
 .eye-toggle{
   background:#fff;border:1px solid #c9c5ba;border-radius:8px;
@@ -379,3 +383,12 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
   .header-auth .auth-buttons { width: 100%; justify-content: center; }
   .header-auth .auth-status { text-align: center; }
 }
+
+.master-seccion{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.master-seccion-header{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;background:var(--card);border:none;cursor:pointer;
+  font-size:.95rem;font-weight:700;color:var(--ink);text-align:left;
+}
+.master-seccion-header:hover{background:#f3f2ee;}
+.master-seccion-body{padding:14px 16px;border-top:1px solid var(--line);}

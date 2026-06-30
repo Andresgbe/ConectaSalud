@@ -1,163 +1,74 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+
+function TelefonoInput({ prefijo, setPrefijo, numero, setNumero }) {
+  return (
+    <div className="telefono-row">
+      <select value={prefijo} onChange={(e) => setPrefijo(e.target.value)}>
+        {PREFIJOS.map((p) => <option key={p} value={p}>{p}</option>)}
+      </select>
+      <input
+        type="text"
+        inputMode="numeric"
+        maxLength={7}
+        placeholder="1234567"
+        value={numero}
+        onChange={(e) => setNumero(e.target.value.replace(/\D/g, '').slice(0, 7))}
+        onPaste={(e) => e.preventDefault()}
+      />
+    </div>
+  )
+}
+
 export default function Register({ onRegistrado, onGoLogin }) {
-  const [rol, setRol] = useState('medico')
-
-  const [telefonoFu, setTelefonoFu] = useState('')
-  const [correoFu, setCorreoFu] = useState('')
-  const [nombreFu, setNombreFu] = useState('')
-  const [codigoFundacion, setCodigoFundacion] = useState('')
-
-  const [telefono, setTelefono] = useState('')
-  const [correo, setCorreo] = useState('')
+  const [prefijo, setPrefijo] = useState('0414')
+  const [numero, setNumero] = useState('')
   const [nombre, setNombre] = useState('')
   const [hospCodigo, setHospCodigo] = useState('')
-
-  const [telefonoAc, setTelefonoAc] = useState('')
-  const [nombreAc, setNombreAc] = useState('')
-  const [nombreCentro, setNombreCentro] = useState('')
-  const [correoAc, setCorreoAc] = useState('')
-
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
 
-  async function handleSubmitMedico(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
+    if (numero.length !== 7) {
+      setStatus({ state: 'err', msg: '⚠️ El número de teléfono debe tener 7 dígitos.' })
+      return
+    }
     setStatus({ state: 'loading', msg: 'Registrando…' })
+    const telefono = prefijo + numero
     const { data, error } = await supabase.rpc('registrar_personal_medico', {
-      p_telefono: telefono.trim(),
-      p_correo: correo.trim(),
+      p_telefono: telefono,
+      p_correo: '',
       p_nombre: nombre.trim(),
       p_servicio: '',
       p_hospital_codigo: hospCodigo.trim(),
     })
-    if (error) {
-  setStatus({ state: 'err', msg: `⚠️ ${error.message}` })
-  return
-  }
-  if (error) {
-  setStatus({ state: 'err', msg: `⚠️ ${error.message}` })
-  return
-  }
-  if (!data) {
-    setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' })
-    return
-  }
-    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu correo y el código del hospital.` })
+    if (error) { setStatus({ state: 'err', msg: `⚠️ ${error.message}` }); return }
+    if (!data) { setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' }); return }
+    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu teléfono y el código del hospital.` })
     setTimeout(() => onRegistrado?.(), 1400)
   }
 
-  async function handleSubmitAcopio(e) {
-    e.preventDefault()
-    setStatus({ state: 'loading', msg: 'Registrando…' })
-    const { data, error } = await supabase.rpc('registrar_centro_acopio', {
-      p_telefono: telefonoAc.trim(),
-      p_correo: correoAc.trim(),
-      p_nombre: nombreAc.trim(),
-      p_nombre_centro: nombreCentro.trim(),
-    })
-    if (error || !data) {
-      setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' })
-      return
-    }
-    setStatus({ state: 'ok', msg: '✅ ¡Listo! Ya puedes iniciar sesión con tu correo.' })
-    setTimeout(() => onRegistrado?.(), 1400)
-  }
-
-  async function handleSubmitFundacion(e) {
-    e.preventDefault()
-    setStatus({ state: 'loading', msg: 'Registrando…' })
-    const { data, error } = await supabase.rpc('registrar_personal_fundacion', {
-      p_telefono: telefonoFu.trim(),
-      p_correo: correoFu.trim(),
-      p_nombre: nombreFu.trim(),
-      p_fundacion_codigo: codigoFundacion.trim(),
-    })
-    if (error) {
-      setStatus({ state: 'err', msg: `⚠️ ${error.message}` })
-      return
-    }
-    if (!data) {
-      setStatus({ state: 'err', msg: '⚠️ No se pudo registrar. Intenta de nuevo.' })
-      return
-    }
-    setStatus({ state: 'ok', msg: `✅ Registrado en ${data}. Ya puedes iniciar sesión con tu correo y el código de la fundación.` })
-    setTimeout(() => onRegistrado?.(), 1400)
-  }
   return (
     <div className="panel">
       <h2>Registrarte</h2>
 
-      <div className="role-switch">
-        <button type="button" className={rol === 'medico' ? 'active' : ''} onClick={() => { setRol('medico'); setStatus({ state: 'idle', msg: '' }) }}>
-          Reportar necesidad
+      <form onSubmit={handleSubmit}>
+        <label className="req">Nombre y apellido</label>
+        <input type="text" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
+
+        <label className="req">Número de teléfono</label>
+        <TelefonoInput prefijo={prefijo} setPrefijo={setPrefijo} numero={numero} setNumero={setNumero} />
+
+        <label className="req">Código del hospital</label>
+        <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} placeholder="Ej: HUC2026" />
+
+        <button type="submit" className="primary" disabled={status.state === 'loading'}>
+          {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}
         </button>
-        <button type="button" className={rol === 'acopio' ? 'active' : ''} onClick={() => { setRol('acopio'); setStatus({ state: 'idle', msg: '' }) }}>
-          Centro de acopio
-        </button>
-        <button type="button" className={rol === 'fundacion' ? 'active' : ''} onClick={() => { setRol('fundacion'); setStatus({ state: 'idle', msg: '' }) }}>
-          Fundación
-        </button>
-      </div>
-
-      {rol === 'medico' ? (
-        <form onSubmit={handleSubmitMedico}>
-          <label className="req">Número de teléfono</label>
-          <input type="tel" required value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Ej: 0414-1234567" />
-
-          <label className="req">Correo</label>
-          <input type="email" required value={correo} onChange={(e) => setCorreo(e.target.value)} />
-
-          <label className="req">Nombre y apellido</label>
-          <input type="text" required value={nombre} onChange={(e) => setNombre(e.target.value)} />
-
-          <label className="req">Código del centro solicitante</label>
-          <input type="text" required value={hospCodigo} onChange={(e) => setHospCodigo(e.target.value)} />
-
-          <button type="submit" className="primary" disabled={status.state === 'loading'}>
-            {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}
-          </button>
-          {status.msg && <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>}
-        </form>
-      ) : rol === 'fundacion' ? (
-        <form onSubmit={handleSubmitFundacion}>
-          <label className="req">Nombre y apellido</label>
-          <input type="text" required value={nombreFu} onChange={(e) => setNombreFu(e.target.value)} />
-
-          <label className="req">Número de teléfono</label>
-          <input type="tel" required value={telefonoFu} onChange={(e) => setTelefonoFu(e.target.value)} placeholder="Ej: 0414-1234567" />
-
-          <label className="req">Correo</label>
-          <input type="email" required value={correoFu} onChange={(e) => setCorreoFu(e.target.value)} />
-
-          <label className="req">Código de la fundación</label>
-          <input type="text" required value={codigoFundacion} onChange={(e) => setCodigoFundacion(e.target.value)} />
-
-          <button type="submit" className="primary" disabled={status.state === 'loading'}>
-            {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}
-          </button>
-          {status.msg && <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>}
-        </form>
-      ) : (
-        <form onSubmit={handleSubmitAcopio}>
-          <label className="req">Nombre y apellido</label>
-          <input type="text" required value={nombreAc} onChange={(e) => setNombreAc(e.target.value)} />
-
-          <label className="req">Número de teléfono</label>
-          <input type="tel" required value={telefonoAc} onChange={(e) => setTelefonoAc(e.target.value)} placeholder="Ej: 0414-1234567" />
-
-          <label className="req">Correo</label>
-          <input type="email" required value={correoAc} onChange={(e) => setCorreoAc(e.target.value)} />
-
-          <label className="req">Nombre del centro</label>
-          <input type="text" required value={nombreCentro} onChange={(e) => setNombreCentro(e.target.value)} />
-
-          <button type="submit" className="primary" disabled={status.state === 'loading'}>
-            {status.state === 'loading' ? 'Registrando…' : 'Registrarme'}
-          </button>
-          {status.msg && <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>}
-        </form>
-      )}
+        {status.msg && <div className={`msg ${status.state === 'ok' ? 'ok' : status.state === 'err' ? 'err' : ''}`}>{status.msg}</div>}
+      </form>
 
       <p className="sub" style={{ marginTop: 14 }}>
         ¿Ya tienes cuenta? <button type="button" className="mini-link" onClick={onGoLogin}>Inicia sesión aquí</button>
