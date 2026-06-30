@@ -148,7 +148,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         {item.contacto && <> · 📞 {item.contacto}</>}
         {item.creado_por && <> · {item.creado_por}</>}
         {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <> · {item.cubierto_por}</>}
-        {puedeEliminar && (
+        {false && puedeEliminar && (
           <>
             {' · '}
             <button className="mini-link" style={{ color: 'var(--rojo)' }} disabled={busy} onClick={() => (isAdmin || masterCreds ? (masterCreds ? eliminarMaster() : eliminar()) : esMiHospital ? eliminarPropio() : eliminarFundacion())}>🗑️ Eliminar</button>

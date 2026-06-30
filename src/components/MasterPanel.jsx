@@ -9,9 +9,7 @@ function Seccion({ titulo, icono, children }) {
     <div className="master-seccion">
       <button type="button" className="master-seccion-header" onClick={() => setAbierta(a => !a)}>
         <span>{icono} {titulo}</span>
-        <span className="collapse-btn" style={{ border: 'none', background: 'none', fontSize: '1.1rem', fontWeight: 700 }}>
-          {abierta ? '−' : '+'}
-        </span>
+        <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{abierta ? '−' : '+'}</span>
       </button>
       {abierta && <div className="master-seccion-body">{children}</div>}
     </div>
@@ -32,6 +30,10 @@ export default function MasterPanel({ masterCreds }) {
   const [nuevoH, setNuevoH] = useState({ nombre: '', identificador: '', codigo_acceso: '' })
   const [mostrarNuevoH, setMostrarNuevoH] = useState(false)
   const [msgH, setMsgH] = useState('')
+
+  const [editandoA, setEditandoA] = useState(null)
+  const [formA, setFormA] = useState({ codigo_acceso: '' })
+  const [msgA, setMsgA] = useState('')
 
   const [editandoF, setEditandoF] = useState(null)
   const [formF, setFormF] = useState({ identificador: '', codigo_acceso: '' })
@@ -88,6 +90,23 @@ export default function MasterPanel({ masterCreds }) {
     cargar()
   }
 
+  async function guardarAcopio(id) {
+    const { error } = await supabase.rpc('master_gestionar_acopio', {
+      p_master_telefono: tel, p_accion: 'editar_codigo',
+      p_acopio_id: id, p_codigo_acceso: formA.codigo_acceso
+    })
+    if (error) { setMsgA('⚠️ ' + error.message); return }
+    setEditandoA(null); setMsgA(''); cargar()
+  }
+
+  async function toggleAcopio(a) {
+    await supabase.rpc('master_gestionar_acopio', {
+      p_master_telefono: tel, p_accion: 'toggle_activo',
+      p_acopio_id: a.id, p_activo: !a.activo
+    })
+    cargar()
+  }
+
   async function crearFundacion() {
     if (!nuevoF.nombre.trim() || !nuevoF.codigo_acceso.trim()) { setMsgF('⚠️ Nombre y código son obligatorios.'); return }
     const { error } = await supabase.rpc('master_gestionar_fundacion', {
@@ -106,6 +125,14 @@ export default function MasterPanel({ masterCreds }) {
     })
     if (error) { setMsgF('⚠️ ' + error.message); return }
     setEditandoF(null); cargar()
+  }
+
+  async function toggleFundacion(f) {
+    await supabase.rpc('master_gestionar_fundacion', {
+      p_master_telefono: tel, p_accion: 'toggle_activo',
+      p_fundacion_id: f.id, p_activo: !f.activo
+    })
+    cargar()
   }
 
   async function crearUsuario() {
@@ -128,6 +155,32 @@ export default function MasterPanel({ masterCreds }) {
       <p className="sub">Control total del sistema. Acceso restringido.</p>
 
       <Seccion titulo={`Centros de salud (${hospitales.length})`} icono="🏥">
+        {mostrarNuevoH ? (
+          <div className="insumo-item" style={{ marginBottom: 10 }}>
+            <label>Nombre del centro</label>
+            <input type="text" value={nuevoH.nombre}
+              onChange={(e) => setNuevoH(s => ({ ...s, nombre: e.target.value }))}
+              placeholder="Ej: Hospital Vargas" />
+            <div className="row2" style={{ marginTop: 8 }}>
+              <input type="text" value={nuevoH.identificador}
+                onChange={(e) => setNuevoH(s => ({ ...s, identificador: e.target.value }))}
+                placeholder="Identificador (ej: HV)" />
+              <input type="text" value={nuevoH.codigo_acceso}
+                onChange={(e) => setNuevoH(s => ({ ...s, codigo_acceso: e.target.value }))}
+                placeholder="Código (ej: HV2026)" />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="cover-btn" onClick={crearHospital}>Crear</button>
+              <button className="undo-btn" onClick={() => { setMostrarNuevoH(false); setMsgH('') }}>Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button className="add-item-btn" style={{ marginBottom: 10 }} onClick={() => setMostrarNuevoH(true)}>
+            + Nuevo centro de salud
+          </button>
+        )}
+        {msgH && <div className="msg err">{msgH}</div>}
+
         {hospitales.map((h) => (
           <div className="insumo-item" key={h.id} style={{ opacity: h.activo ? 1 : 0.55 }}>
             <div className="item-line">
@@ -165,49 +218,79 @@ export default function MasterPanel({ masterCreds }) {
             )}
           </div>
         ))}
-        {msgH && <div className="msg err">{msgH}</div>}
-        {mostrarNuevoH ? (
-          <div className="insumo-item" style={{ marginTop: 10 }}>
-            <label>Nombre del centro</label>
-            <input type="text" value={nuevoH.nombre}
-              onChange={(e) => setNuevoH(s => ({ ...s, nombre: e.target.value }))}
-              placeholder="Ej: Hospital Vargas" />
-            <div className="row2" style={{ marginTop: 8 }}>
-              <input type="text" value={nuevoH.identificador}
-                onChange={(e) => setNuevoH(s => ({ ...s, identificador: e.target.value }))}
-                placeholder="Identificador (ej: HV)" />
-              <input type="text" value={nuevoH.codigo_acceso}
-                onChange={(e) => setNuevoH(s => ({ ...s, codigo_acceso: e.target.value }))}
-                placeholder="Código (ej: HV2026)" />
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className="cover-btn" onClick={crearHospital}>Crear</button>
-              <button className="undo-btn" onClick={() => { setMostrarNuevoH(false); setMsgH('') }}>Cancelar</button>
-            </div>
-          </div>
-        ) : (
-          <button className="add-item-btn" style={{ marginTop: 10 }} onClick={() => setMostrarNuevoH(true)}>
-            + Nuevo centro de salud
-          </button>
-        )}
       </Seccion>
 
       <Seccion titulo={`Centros de acopio (${acopios.length})`} icono="📦">
+        {msgA && <div className="msg err">{msgA}</div>}
         {acopios.length === 0 && <div className="empty">Sin centros registrados.</div>}
         {acopios.map((a) => (
-          <div className="insumo-item" key={a.id}>
-            <div className="item-line"><b>{a.nombre_centro}</b></div>
-            <div className="item-sub">
-              {a.nombre_completo} · 📞 {a.telefono} · Código: <b>{a.codigo_acceso}</b>
+          <div className="insumo-item" key={a.id} style={{ opacity: a.activo ? 1 : 0.55 }}>
+            <div className="item-line">
+              <b>{a.nombre_centro}</b>
+              {!a.activo && <span className="tag-mini" style={{ background: '#eee', color: '#888' }}>Inactivo</span>}
             </div>
+            {editandoA === a.id ? (
+              <>
+                <input type="text" style={{ marginTop: 8 }} placeholder="Código" value={formA.codigo_acceso}
+                  onChange={(e) => setFormA({ codigo_acceso: e.target.value })} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button className="cover-btn" onClick={() => guardarAcopio(a.id)}>Guardar</button>
+                  <button className="undo-btn" onClick={() => setEditandoA(null)}>Cancelar</button>
+                </div>
+              </>
+            ) : (
+              <div className="item-sub">
+                {a.nombre_completo} · 📞 {a.telefono} · Código: <b>{a.codigo_acceso}</b>
+                {' · '}
+                <button className="mini-link" onClick={() => {
+                  setFormA({ codigo_acceso: a.codigo_acceso || '' })
+                  setEditandoA(a.id)
+                }}>Editar código</button>
+                {' · '}
+                <button className="mini-link"
+                  style={{ color: a.activo ? 'var(--rojo)' : 'var(--verde)' }}
+                  onClick={() => toggleAcopio(a)}>
+                  {a.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </Seccion>
 
       <Seccion titulo={`Fundaciones (${fundaciones.length})`} icono="🤝">
+        {mostrarNuevoF ? (
+          <div className="insumo-item" style={{ marginBottom: 10 }}>
+            <label>Nombre de la fundación</label>
+            <input type="text" value={nuevoF.nombre}
+              onChange={(e) => setNuevoF(s => ({ ...s, nombre: e.target.value }))}
+              placeholder="Ej: Fundación Ejemplo" />
+            <div className="row2" style={{ marginTop: 8 }}>
+              <input type="text" value={nuevoF.identificador}
+                onChange={(e) => setNuevoF(s => ({ ...s, identificador: e.target.value }))}
+                placeholder="Identificador (ej: FE)" />
+              <input type="text" value={nuevoF.codigo_acceso}
+                onChange={(e) => setNuevoF(s => ({ ...s, codigo_acceso: e.target.value }))}
+                placeholder="Código (ej: FE2026)" />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="cover-btn" onClick={crearFundacion}>Crear</button>
+              <button className="undo-btn" onClick={() => { setMostrarNuevoF(false); setMsgF('') }}>Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button className="add-item-btn" style={{ marginBottom: 10 }} onClick={() => setMostrarNuevoF(true)}>
+            + Nueva fundación
+          </button>
+        )}
+        {msgF && <div className="msg err">{msgF}</div>}
+
         {fundaciones.map((f) => (
-          <div className="insumo-item" key={f.id}>
-            <div className="item-line"><b>{f.nombre}</b></div>
+          <div className="insumo-item" key={f.id} style={{ opacity: f.activo ? 1 : 0.55 }}>
+            <div className="item-line">
+              <b>{f.nombre}</b>
+              {!f.activo && <span className="tag-mini" style={{ background: '#eee', color: '#888' }}>Inactivo</span>}
+            </div>
             {editandoF === f.id ? (
               <>
                 <div className="row2" style={{ marginTop: 8 }}>
@@ -229,47 +312,21 @@ export default function MasterPanel({ masterCreds }) {
                   setFormF({ identificador: f.identificador || '', codigo_acceso: f.codigo_acceso || '' })
                   setEditandoF(f.id)
                 }}>Editar código</button>
+                {' · '}
+                <button className="mini-link"
+                  style={{ color: f.activo ? 'var(--rojo)' : 'var(--verde)' }}
+                  onClick={() => toggleFundacion(f)}>
+                  {f.activo ? 'Desactivar' : 'Activar'}
+                </button>
               </div>
             )}
           </div>
         ))}
-        {msgF && <div className="msg err">{msgF}</div>}
-        {mostrarNuevoF ? (
-          <div className="insumo-item" style={{ marginTop: 10 }}>
-            <label>Nombre de la fundación</label>
-            <input type="text" value={nuevoF.nombre}
-              onChange={(e) => setNuevoF(s => ({ ...s, nombre: e.target.value }))}
-              placeholder="Ej: Fundación Ejemplo" />
-            <div className="row2" style={{ marginTop: 8 }}>
-              <input type="text" value={nuevoF.identificador}
-                onChange={(e) => setNuevoF(s => ({ ...s, identificador: e.target.value }))}
-                placeholder="Identificador (ej: FE)" />
-              <input type="text" value={nuevoF.codigo_acceso}
-                onChange={(e) => setNuevoF(s => ({ ...s, codigo_acceso: e.target.value }))}
-                placeholder="Código (ej: FE2026)" />
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className="cover-btn" onClick={crearFundacion}>Crear</button>
-              <button className="undo-btn" onClick={() => { setMostrarNuevoF(false); setMsgF('') }}>Cancelar</button>
-            </div>
-          </div>
-        ) : (
-          <button className="add-item-btn" style={{ marginTop: 10 }} onClick={() => setMostrarNuevoF(true)}>
-            + Nueva fundación
-          </button>
-        )}
       </Seccion>
 
       <Seccion titulo={`Usuarios Master (${usuarios.length})`} icono="👤">
-        {usuarios.map((u) => (
-          <div className="insumo-item" key={u.id}>
-            <div className="item-line"><b>{u.nombre}</b></div>
-            <div className="item-sub">📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b></div>
-          </div>
-        ))}
-        {msgU && <div className="msg err">{msgU}</div>}
         {mostrarNuevoU ? (
-          <div className="insumo-item" style={{ marginTop: 10 }}>
+          <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre y apellido</label>
             <input type="text" value={nuevoU.nombre} onChange={(e) => setNuevoU(s => ({ ...s, nombre: e.target.value }))} />
             <label>Teléfono</label>
@@ -290,10 +347,18 @@ export default function MasterPanel({ masterCreds }) {
             </div>
           </div>
         ) : (
-          <button className="add-item-btn" style={{ marginTop: 10 }} onClick={() => setMostrarNuevoU(true)}>
+          <button className="add-item-btn" style={{ marginBottom: 10 }} onClick={() => setMostrarNuevoU(true)}>
             + Nuevo usuario master
           </button>
         )}
+        {msgU && <div className="msg err">{msgU}</div>}
+
+        {usuarios.map((u) => (
+          <div className="insumo-item" key={u.id}>
+            <div className="item-line"><b>{u.nombre}</b></div>
+            <div className="item-sub">📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b></div>
+          </div>
+        ))}
       </Seccion>
     </div>
   )
