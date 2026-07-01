@@ -36,6 +36,7 @@ function nuevoItem() {
 
 export default function NeedForm({ hospital, contacto, creadoPor, onPublished }) {
   const [servicio, setServicio] = useState('')
+  const [ubicacionEspontanea, setUbicacionEspontanea] = useState('')
   const [prefRecibe, setPrefRecibe] = useState('0414')
   const [numRecibe, setNumRecibe] = useState('')
   const [prefRecibe2, setPrefRecibe2] = useState('0414')
@@ -104,6 +105,7 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
     setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
     setNotas('')
     setServicio('')
+    setUbicacionEspontanea('') 
     setNumRecibe('')
     setNumRecibe2('')
     setMostrarRecibe2(false)
@@ -120,7 +122,18 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
 
         <label className="req">Servicio</label>
         <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
-
+        {hospital === HOSPITAL_ESPONTANEO && (
+          <>
+            <label className="req">Nombre y ubicación del centro de salud</label>
+            <input
+              type="text"
+              required
+              value={ubicacionEspontanea}
+              onChange={(e) => setUbicacionEspontanea(e.target.value)}
+              placeholder="Ej: Puesto de salud La Vega, Av. Principal cerca del mercado"
+            />
+          </>
+        )}
         <label className="req">¿Quién recibe?</label>
         <TelefonoInput prefijo={prefRecibe} setPrefijo={setPrefRecibe} numero={numRecibe} setNumero={setNumRecibe} />
 

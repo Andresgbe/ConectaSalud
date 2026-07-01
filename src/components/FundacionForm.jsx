@@ -8,6 +8,7 @@ const URGENCIA_OPCIONES = [
   ['baja', '🟢 Baja'],
 ]
 const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+const HOSPITAL_ESPONTANEO = 'Puestos de salud espontáneos'
 
 function TelefonoInput({ prefijo, setPrefijo, numero, setNumero, placeholder }) {
   return (
@@ -37,6 +38,7 @@ function nuevoItem() {
 export default function FundacionForm({ contacto, creadoPor, onPublished }) {
   const [hospitales, setHospitales] = useState([])
   const [hospital, setHospital] = useState('')
+  const [ubicacionEspontanea, setUbicacionEspontanea] = useState('')
   const [servicio, setServicio] = useState('')
   const [prefRecibe, setPrefRecibe] = useState('0414')
   const [numRecibe, setNumRecibe] = useState('')
@@ -72,6 +74,10 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       setStatus({ state: 'err', msg: 'Indica el servicio.' })
       return
     }
+    if (hospital === HOSPITAL_ESPONTANEO && !ubicacionEspontanea.trim()) {   // ← nuevo bloque
+      setStatus({ state: 'err', msg: 'Indica el nombre y ubicación del centro de salud.' })
+      return
+    }
     if (numRecibe.length !== 7) {
       setStatus({ state: 'err', msg: 'Indica el teléfono de quién recibe (7 dígitos).' })
       return
@@ -101,6 +107,8 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       creado_por: creadoPor || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
+      ubicacion_espontanea: hospital === HOSPITAL_ESPONTANEO ? ubicacionEspontanea.trim() : null,   // ← nueva
+      lote_id: loteId,
       lote_id: loteId,
     }))
 
@@ -115,6 +123,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
     setStatus({ state: 'ok', msg: `✅ ${filas.length} insumo${filas.length === 1 ? '' : 's'} publicado${filas.length === 1 ? '' : 's'}.` })
     setNotas('')
     setHospital('')
+    setUbicacionEspontanea('')
     setServicio('')
     setNumRecibe('')
     setNumRecibe2('')
@@ -136,7 +145,18 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
             <option key={h.nombre} value={h.nombre}>{h.nombre}</option>
           ))}
         </select>
-
+        {hospital === HOSPITAL_ESPONTANEO && (
+          <>
+            <label className="req">Nombre y ubicación del centro de salud</label>
+            <input
+              type="text"
+              required
+              value={ubicacionEspontanea}
+              onChange={(e) => setUbicacionEspontanea(e.target.value)}
+              placeholder="Ej: Puesto de salud La Vega, Av. Principal cerca del mercado"
+            />
+          </>
+        )}
         <label className="req">Servicio</label>
         <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
 

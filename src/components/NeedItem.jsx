@@ -29,7 +29,7 @@ export function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
-export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact }) {
+export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact, groupControlled, selectable, checked, onToggleCheck }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
   const [nota, setNota] = useState('')
@@ -176,24 +176,55 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     </button>
   )
 
+  const infoBlock = (
+    <div className="item-sub item-sub-vertical">
+      <div>{horaYrelativo(item.creado_en)}</div>
+      {item.ubicacion_espontanea && <div><b>CENTRO:</b> {item.ubicacion_espontanea}</div>} 
+      {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
+      {(item.receptor_telefono || item.receptor_telefono_2) && (
+        <div>
+          {item.receptor_telefono && <><b>📞 Recibe:</b> {item.receptor_telefono}</>}
+          {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
+        </div>
+      )}
+      {item.contacto && <div>{item.contacto}</div>}
+      {item.creado_por && <div>{item.creado_por}</div>}
+      {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
+      {item.transportista_nombre && (
+        <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
+      )}
+    </div>
+  )
+
   if (compact) {
+    const noDisponible = item.incluido === false
     return (
       <div className={`lote-item estado-bg-${item.estado_cobertura}`}>
         <div className="item-line">
+          {selectable && !noDisponible && (
+            <input
+              type="checkbox"
+              className="item-checkbox"
+              checked={!!checked}
+              onChange={() => onToggleCheck?.(item.id)}
+              aria-label={`Incluir ${item.insumo}`}
+            />
+          )}
           <b>{item.insumo}</b>{item.cantidad ? ` — ${item.cantidad}` : ''}
           <span className={`tag-mini u-${item.urgencia}`}>{URGENCIA_LABEL[item.urgencia]}</span>
-          <span className={`item-status ${item.estado_cobertura}`} style={{ marginLeft: 'auto' }}>{STATUS_LABEL[item.estado_cobertura]}</span>
+          <span className={`item-status ${noDisponible ? 'no_disponible' : item.estado_cobertura}`} style={{ marginLeft: 'auto' }}>
+            {noDisponible ? 'No disponible' : STATUS_LABEL[item.estado_cobertura]}
+          </span>
           {deshabilitarBtn}
         </div>
 
-        {((item.estado_cobertura !== 'pendiente' && item.cubierto_por) || item.transportista_nombre) && (
-          <div className="item-sub item-sub-vertical">
-            {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
-            {item.transportista_nombre && <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>}
-          </div>
-        )}
+        {item.notas && <div className="need-notas">{item.notas}</div>}
 
-        {accionesBlock}
+        {infoBlock}
+
+        {groupControlled
+          ? (puedeCambiar && item.nota_recepcion && <span className="nota-chip">📝 {item.nota_recepcion}</span>)
+          : accionesBlock}
       </div>
     )
   }
@@ -215,22 +246,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
       {item.notas && <div className="need-notas">{item.notas}</div>}
 
-      <div className="item-sub item-sub-vertical">
-        <div>{horaYrelativo(item.creado_en)}</div>
-        {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
-        {(item.receptor_telefono || item.receptor_telefono_2) && (
-          <div>
-            {item.receptor_telefono && <><b>📞 Recibe:</b> {item.receptor_telefono}</>}
-            {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
-          </div>
-        )}
-        {item.contacto && <div>{item.contacto}</div>}
-        {item.creado_por && <div>{item.creado_por}</div>}
-        {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
-        {item.transportista_nombre && (
-          <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
-        )}
-      </div>
+      {infoBlock}
 
       {accionesBlock}
     </div>

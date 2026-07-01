@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 import NeedItem from './NeedItem.jsx'
+import NeedRequestGroup from './NeedRequestGroup.jsx'
 
 function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -43,6 +44,20 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
       return true
     })
   }, [needs, filters])
+
+  const groupedItems = useMemo(() => {
+    const groups = new Map()
+    const order = []
+    for (const item of filteredItems) {
+      const key = item.lote_id || item.id
+      if (!groups.has(key)) {
+        groups.set(key, [])
+        order.push(key)
+      }
+      groups.get(key).push(item)
+    }
+    return order.map((key) => groups.get(key))
+  }, [filteredItems])
 
   const deshabilitadas = useMemo(() => needs.filter((n) => n.deshabilitada), [needs])
 
@@ -136,20 +151,35 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         <div className="empty">No hay necesidades que coincidan con estos filtros todavía.</div>
       )}
 
-      {filteredItems.map((item) => (
-        <NeedItem
-          key={item.id}
-          item={item}
-          onChanged={loadNeeds}
-          isAdmin={isAdmin}
-          adminCreds={adminCreds}
-          acopioCreds={acopioCreds}
-          medicoCreds={medicoCreds}
-          fundacionCreds={fundacionCreds}
-          masterCreds={masterCreds}
-          subadminCreds={subadminCreds}
-        />
-      ))}
+      {groupedItems.map((group) =>
+        group.length > 1 ? (
+          <NeedRequestGroup
+            key={group[0].lote_id}
+            items={group}
+            onChanged={loadNeeds}
+            isAdmin={isAdmin}
+            adminCreds={adminCreds}
+            acopioCreds={acopioCreds}
+            medicoCreds={medicoCreds}
+            fundacionCreds={fundacionCreds}
+            masterCreds={masterCreds}
+            subadminCreds={subadminCreds}
+          />
+        ) : (
+          <NeedItem
+            key={group[0].id}
+            item={group[0]}
+            onChanged={loadNeeds}
+            isAdmin={isAdmin}
+            adminCreds={adminCreds}
+            acopioCreds={acopioCreds}
+            medicoCreds={medicoCreds}
+            fundacionCreds={fundacionCreds}
+            masterCreds={masterCreds}
+            subadminCreds={subadminCreds}
+          />
+        )
+      )}
 
       {(masterCreds || subadminCreds) && (
         <div className="master-seccion" style={{ marginTop: 20 }}>
