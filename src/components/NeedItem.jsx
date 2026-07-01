@@ -276,6 +276,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
         {item.notas && <div className="need-notas">{item.notas}</div>}
 
+        {noDisponible && item.no_disponible_por && (
+          <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
+        )}
+
         {infoBlock}
 
         {groupControlled
@@ -301,6 +305,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       </div>
 
       {item.notas && <div className="need-notas">{item.notas}</div>}
+
+      {noDisponible && item.no_disponible_por && (
+        <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
+      )}
 
       {infoBlock}
 
