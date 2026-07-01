@@ -47,18 +47,27 @@ export default function MasterPanel({ masterCreds }) {
   const [mostrarNuevoU, setMostrarNuevoU] = useState(false)
   const [msgU, setMsgU] = useState('')
 
+  const [subadmins, setSubadmins] = useState([])
+  const [editandoS, setEditandoS] = useState(null)
+  const [formS, setFormS] = useState({ telefono: '', nombre_completo: '', codigo_acceso: '' })
+  const [nuevoS, setNuevoS] = useState({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026' })
+  const [mostrarNuevoS, setMostrarNuevoS] = useState(false)
+  const [msgS, setMsgS] = useState('')
+
   async function cargar() {
     setLoading(true)
-    const [{ data: hData }, { data: aData }, { data: fData }, { data: uData }] = await Promise.all([
+    const [{ data: hData }, { data: aData }, { data: fData }, { data: uData }, { data: sData }] = await Promise.all([
       supabase.rpc('master_listar_hospitales', { p_master_telefono: tel }),
       supabase.rpc('master_listar_acopios', { p_master_telefono: tel }),
       supabase.rpc('master_listar_fundaciones', { p_master_telefono: tel }),
       supabase.rpc('master_listar_usuarios', { p_master_telefono: tel }),
+      supabase.rpc('master_listar_subadmins', { p_master_telefono: tel }),
     ])
     setHospitales(hData || [])
     setAcopios(aData || [])
     setFundaciones(fData || [])
     setUsuarios(uData || [])
+    setSubadmins(sData || [])
     setLoading(false)
   }
 
@@ -171,6 +180,41 @@ export default function MasterPanel({ masterCreds }) {
     if (error) { setMsgU('⚠️ ' + error.message); return }
     setNuevoU({ nombre: '', prefijo: '0414', numero: '', codigo: '' })
     setMostrarNuevoU(false); setMsgU(''); cargar()
+  }
+
+  async function crearSubadmin() {
+    if (nuevoS.numero.length !== 7) { setMsgS('⚠️ El número debe tener 7 dígitos.'); return }
+    if (!nuevoS.nombre_completo.trim() || !nuevoS.codigo_acceso.trim()) { setMsgS('⚠️ Nombre y código son obligatorios.'); return }
+    const { error } = await supabase.rpc('master_crear_subadmin', {
+      p_master_telefono: tel,
+      p_telefono: nuevoS.prefijo + nuevoS.numero,
+      p_nombre_completo: nuevoS.nombre_completo.trim(),
+      p_codigo_acceso: nuevoS.codigo_acceso.trim(),
+    })
+    if (error) { setMsgS('⚠️ ' + error.message); return }
+    setNuevoS({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026' })
+    setMostrarNuevoS(false); setMsgS(''); cargar()
+  }
+
+  async function guardarSubadmin(id) {
+    if (formS.telefono.replace(/\D/g, '').length < 10) { setMsgS('⚠️ Teléfono inválido.'); return }
+    if (!formS.nombre_completo.trim() || !formS.codigo_acceso.trim()) { setMsgS('⚠️ Nombre y código son obligatorios.'); return }
+    const { error } = await supabase.rpc('master_editar_subadmin', {
+      p_master_telefono: tel,
+      p_subadmin_id: id,
+      p_telefono: formS.telefono.trim(),
+      p_nombre_completo: formS.nombre_completo.trim(),
+      p_codigo_acceso: formS.codigo_acceso.trim(),
+    })
+    if (error) { setMsgS('⚠️ ' + error.message); return }
+    setEditandoS(null); setMsgS(''); cargar()
+  }
+
+  async function eliminarSubadmin(s) {
+    if (!confirm(`¿Eliminar permanentemente a "${s.nombre_completo}"? Esta acción no se puede deshacer.`)) return
+    const { error } = await supabase.rpc('master_eliminar_subadmin', { p_master_telefono: tel, p_subadmin_id: s.id })
+    if (error) { setMsgS('⚠️ ' + error.message); return }
+    cargar()
   }
 
   if (loading) return <div className="panel"><div className="count-line">Cargando…</div></div>
@@ -380,6 +424,74 @@ export default function MasterPanel({ masterCreds }) {
                   style={{ color: f.activo ? 'var(--rojo)' : 'var(--verde)' }}
                   onClick={() => toggleFundacion(f)}>
                   {f.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </Seccion>
+
+      <Seccion titulo={`Subadmins (${subadmins.length})`} icono="🛡️">
+        {mostrarNuevoS ? (
+          <div className="insumo-item" style={{ marginBottom: 10 }}>
+            <label>Nombre y apellido</label>
+            <input type="text" value={nuevoS.nombre_completo}
+              onChange={(e) => setNuevoS(s => ({ ...s, nombre_completo: e.target.value }))} />
+            <label>Teléfono</label>
+            <div className="telefono-row">
+              <select value={nuevoS.prefijo} onChange={(e) => setNuevoS(s => ({ ...s, prefijo: e.target.value }))}>
+                {PREFIJOS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <input type="text" inputMode="numeric" maxLength={7} placeholder="1234567"
+                value={nuevoS.numero}
+                onChange={(e) => setNuevoS(s => ({ ...s, numero: e.target.value.replace(/\D/g, '').slice(0, 7) }))}
+                onPaste={(e) => e.preventDefault()} />
+            </div>
+            <label>Código de acceso</label>
+            <input type="text" value={nuevoS.codigo_acceso}
+              onChange={(e) => setNuevoS(s => ({ ...s, codigo_acceso: e.target.value }))}
+              placeholder="Ej: SUBADMIN2026" />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="cover-btn" onClick={crearSubadmin}>Crear</button>
+              <button className="undo-btn" onClick={() => { setMostrarNuevoS(false); setMsgS('') }}>Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button className="add-item-btn" style={{ marginBottom: 10 }} onClick={() => setMostrarNuevoS(true)}>
+            + Nuevo subadmin
+          </button>
+        )}
+        {msgS && <div className="msg err">{msgS}</div>}
+        {subadmins.length === 0 && <div className="empty">Sin subadmins registrados.</div>}
+        {subadmins.map((s) => (
+          <div className="insumo-item" key={s.id}>
+            <div className="item-line"><b>{s.nombre_completo}</b></div>
+            {editandoS === s.id ? (
+              <>
+                <div className="row2" style={{ marginTop: 8 }}>
+                  <input type="text" placeholder="Nombre y apellido" value={formS.nombre_completo}
+                    onChange={(e) => setFormS(f => ({ ...f, nombre_completo: e.target.value }))} />
+                  <input type="text" inputMode="numeric" placeholder="Teléfono" value={formS.telefono}
+                    onChange={(e) => setFormS(f => ({ ...f, telefono: e.target.value.replace(/\D/g, '').slice(0, 11) }))} />
+                </div>
+                <input type="text" placeholder="Código de acceso" style={{ marginTop: 8 }} value={formS.codigo_acceso}
+                  onChange={(e) => setFormS(f => ({ ...f, codigo_acceso: e.target.value }))} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button className="cover-btn" onClick={() => guardarSubadmin(s.id)}>Guardar</button>
+                  <button className="undo-btn" onClick={() => setEditandoS(null)}>Cancelar</button>
+                </div>
+              </>
+            ) : (
+              <div className="item-sub">
+                📞 {s.telefono} · Código: <b>{s.codigo_acceso}</b>
+                {' · '}
+                <button className="mini-link" onClick={() => {
+                  setFormS({ telefono: s.telefono || '', nombre_completo: s.nombre_completo || '', codigo_acceso: s.codigo_acceso || '' })
+                  setEditandoS(s.id)
+                }}>Editar</button>
+                {' · '}
+                <button className="mini-link" style={{ color: 'var(--rojo)' }} onClick={() => eliminarSubadmin(s)}>
+                  Eliminar
                 </button>
               </div>
             )}

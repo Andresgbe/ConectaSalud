@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 import NeedItem from './NeedItem.jsx'
 import NeedRequestGroup from './Needrequestgroup.jsx'
+import Anuncio from './Anuncio.jsx'
 
 function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -113,6 +114,10 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         </div>
       </div>
 
+      {/* 
+      <Anuncio masterCreds={masterCreds} /> 
+      */}
+
       <div className="filters">
         <select value={filters.urgencia} onChange={(e) => setFilter('urgencia', e.target.value)}>
           <option value="">Toda urgencia</option>
@@ -138,7 +143,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
       <div className="count-line">
         {loading
           ? 'Cargando…'
-          : `${filteredItems.length} insumo${filteredItems.length === 1 ? '' : 's'} en ${stats.hospitales} hospital${stats.hospitales === 1 ? '' : 'es'}`}
+          : `${filteredItems.length} insumo${filteredItems.length === 1 ? '' : 's'} en ${stats.hospitales} centros de salud`}
       </div>
 
       {!puedeMarcar && stats.pendientes > 0 && (

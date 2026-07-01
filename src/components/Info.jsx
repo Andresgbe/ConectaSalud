@@ -7,37 +7,50 @@ export default function Info() {
       </p>
 
       <div className="info-block">
-        <h3>Personal médico</h3>
-        <p>
-          Regístrate con el código de tu hospital y publica los insumos que hacen falta, indicando el servicio y la urgencia de cada uno. Cuando un insumo va avanzando (lista para salir, en camino), puedes confirmar su recepción una vez que llegue a tu hospital — solo para las necesidades de tu propio hospital.
+        <h3>Solicitud de insumos en Centros de Acopio UCV</h3>
+        <p style={{ textAlign: 'justify' }}>Para centros de salud, organizaciones de salud y albergues.</p>
+        <p style={{ textAlign: 'justify' }}>
+          Para hacer entrega de cajas con insumos y medicamentos en Centros de Acopio de la UCV se deben seguir los siguientes pasos:
         </p>
-      </div>
+        <ol style={{ margin: '0 0 12px 18px', padding: 0, color: '#444', fontSize: '.92rem', lineHeight: 1.5, textAlign: 'justify' }}>
+          <li>
+            Regístrate en esta página, colocando tus datos y en "código de acceso", coloca el correspondiente según el hospital, centro de salud u organización a la que pertenezcas. (Los códigos los otorgamos personalmente, a través de los números más abajo).
+          </li>
+          <li>
+            Una vez que ingreses a la página, haz click en "Hacer Solicitud de Donación" y completa los datos. Es importante agregar el servicio al que será dirigido y los datos de la persona que recibirá en el centro. Luego, llena cada ítem solicitado por separado y agrega cualquier nota adicional que consideres necesaria.
+          </li>
+          <li>
+            Al recibir la solicitud, verificaremos disponibilidad y armaremos la caja. Nos pondremos en contacto con el número indicado para coordinar la entrega. Podemos llevarla al centro correspondiente.
+          </li>
+        </ol>
 
-      <div className="info-block">
-        <h3>Centros de acopio</h3>
-        <p>
-          Inicia sesión con tu correo y revisa el reporte completo, ordenado del insumo más reciente al más antiguo. Marca los insumos que vas a llevar y ve avanzando su estado paso a paso (lista para salir → en camino → recibida) para que otros centros no dupliquen el esfuerzo.
+        <p style={{ marginBottom: 4 }}><b>Ubicación de los centros de acopio:</b></p>
+        <p style={{ margin: '0 0 12px' }}>
+          <b>Instituto Anatómico UCV:</b>{' '}
+          <a href="https://maps.app.goo.gl/Lyv7eekSS9BisZb97?g_st=ic" target="_blank" rel="noopener noreferrer">
+            ver ubicación
+          </a>
+          <br />
+          <b>Instituto de Medicina Tropical UCV:</b>{' '}
+          <a href="https://maps.app.goo.gl/bpRg9A67H8Lbur3bA?g_st=ic" target="_blank" rel="noopener noreferrer">
+            ver ubicación
+          </a>
         </p>
-      </div>
 
-      <div className="info-block">
-        <h3>Fundaciones</h3>
-        <p>
-          Regístrate con el código de tu fundación. Puedes publicar necesidades en nombre de cualquier hospital del listado, y al igual que los centros de acopio, marcar y avanzar el estado de cualquier insumo del reporte.
+        <p style={{ textAlign: 'justify' }}>
+          Debemos proteger los insumos y medicamentos que las personas nos confían, para que lleguen a las manos de quienes los necesitan.
         </p>
-      </div>
-
-      <div className="info-block">
-        <h3>Estado de comida</h3>
-        <p>
-          En la sección "Comida" se reporta, por hospital, si hay alimentos perecederos y no perecederos disponibles. El personal médico de cada hospital (o un administrador) puede actualizar ese estado en cualquier momento.
+        <p style={{ textAlign: 'justify' }}>
+          Si formas parte de un hospital, centro de salud u organización, puedes escribirnos para que te enviemos el código correspondiente y así puedas hacer la solicitud.
         </p>
-      </div>
-
-      <div className="info-block">
-        <h3>Voluntarios y albergues</h3>
-        <p>
-          Puedes consultar el reporte sin iniciar sesión para ver qué insumos hacen falta, en qué hospitales, y su estado actual, y coordinar con los centros de acopio o fundaciones listados para llevar ayuda donde más se necesita.
+        <p style={{ textAlign: 'justify' }}>
+          Personal de salud que planea ir a apoyar directamente en terreno y requiere insumos puede contactarnos para verificar su identidad y entregarle insumos como puesto de salud espontáneo.
+        </p>
+        <br></br>
+        <p style={{ marginBottom: 0 }}>
+          <b>Número de contacto:</b><br />
+          <b style={{ fontSize: '1.05rem', color: '#7c5ffe' }}>Manuela Saglimbeni: +58 424-2838548</b><br />
+          <b style={{ fontSize: '1.05rem', color: '#7c5ffe' }}>María Alesia Rafalli: +58 414-3003224</b>
         </p>
       </div>
     </div>
