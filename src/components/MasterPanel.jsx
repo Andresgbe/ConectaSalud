@@ -1,7 +1,43 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
+import { descargarCSV } from '../utils/csv.js'
 
 const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
+
+const fechaLegible = (v) => (v ? new Date(v).toLocaleString('es-VE') : '')
+const siNo = (v) => (v ? 'Sí' : 'No')
+
+// Columnas del CSV de necesidades: [cabecera, extractor]. Exporta TODAS las filas,
+// incluyendo deshabilitadas y "no disponibles" (incluido === false).
+const COLS_NECESIDADES = [
+  ['Insumo', (n) => n.insumo],
+  ['Cantidad', (n) => n.cantidad],
+  ['Hospital', (n) => n.hospital],
+  ['Servicio', (n) => n.servicio],
+  ['Ciudad', (n) => n.ciudad],
+  ['Estado (región)', (n) => n.estado],
+  ['Urgencia', (n) => n.urgencia],
+  ['Estado de cobertura', (n) => n.estado_cobertura],
+  ['Disponible', (n) => (n.incluido === false ? 'No' : 'Sí')],
+  ['Deshabilitada', (n) => siNo(n.deshabilitada)],
+  ['No disponible marcado por', (n) => n.no_disponible_por],
+  ['Creado por', (n) => n.creado_por],
+  ['Contacto', (n) => n.contacto],
+  ['Receptor nombre', (n) => n.receptor_nombre],
+  ['Receptor telefono', (n) => n.receptor_telefono],
+  ['Receptor telefono 2', (n) => n.receptor_telefono_2],
+  ['Cubierto por', (n) => n.cubierto_por],
+  ['Transportista nombre', (n) => n.transportista_nombre],
+  ['Transportista telefono', (n) => n.transportista_telefono],
+  ['Ubicación espontánea', (n) => n.ubicacion_espontanea],
+  ['Notas', (n) => n.notas],
+  ['Comentario', (n) => n.comentario],
+  ['Nota recepción', (n) => n.nota_recepcion],
+  ['Creado en', (n) => fechaLegible(n.creado_en)],
+  ['Actualizado en', (n) => fechaLegible(n.actualizado_en)],
+  ['Lote ID', (n) => n.lote_id],
+  ['ID', (n) => n.id],
+]
 
 function Seccion({ titulo, icono, children }) {
   const [abierta, setAbierta] = useState(false)
@@ -23,6 +59,7 @@ export default function MasterPanel({ masterCreds }) {
   const [acopios, setAcopios] = useState([])
   const [fundaciones, setFundaciones] = useState([])
   const [usuarios, setUsuarios] = useState([])
+  const [necesidades, setNecesidades] = useState([])
   const [loading, setLoading] = useState(true)
 
   const [editandoH, setEditandoH] = useState(null)
@@ -56,18 +93,20 @@ export default function MasterPanel({ masterCreds }) {
 
   async function cargar() {
     setLoading(true)
-    const [{ data: hData }, { data: aData }, { data: fData }, { data: uData }, { data: sData }] = await Promise.all([
+    const [{ data: hData }, { data: aData }, { data: fData }, { data: uData }, { data: sData }, { data: nData }] = await Promise.all([
       supabase.rpc('master_listar_hospitales', { p_master_telefono: tel }),
       supabase.rpc('master_listar_acopios', { p_master_telefono: tel }),
       supabase.rpc('master_listar_fundaciones', { p_master_telefono: tel }),
       supabase.rpc('master_listar_usuarios', { p_master_telefono: tel }),
       supabase.rpc('master_listar_subadmins', { p_master_telefono: tel }),
+      supabase.from('necesidades').select('*').order('creado_en', { ascending: false }),
     ])
     setHospitales(hData || [])
     setAcopios(aData || [])
     setFundaciones(fData || [])
     setUsuarios(uData || [])
     setSubadmins(sData || [])
+    setNecesidades(nData || [])
     setLoading(false)
   }
 
@@ -217,6 +256,39 @@ export default function MasterPanel({ masterCreds }) {
     cargar()
   }
 
+  const EXPORTS = [
+    { key: 'hospitales', archivo: 'centros_de_salud.csv',
+      headers: ['Nombre', 'Identificador', 'Codigo de acceso', 'Estado'],
+      filas: () => hospitales.map((h) => [h.nombre, h.identificador, h.codigo_acceso, h.activo ? 'Activo' : 'Inactivo']) },
+    { key: 'acopios', archivo: 'centros_de_acopio.csv',
+      headers: ['Nombre del centro', 'Responsable', 'Telefono', 'Codigo de acceso', 'Estado'],
+      filas: () => acopios.map((a) => [a.nombre_centro, a.nombre_completo, a.telefono, a.codigo_acceso, a.activo ? 'Activo' : 'Inactivo']) },
+    { key: 'fundaciones', archivo: 'fundaciones.csv',
+      headers: ['Nombre', 'Identificador', 'Codigo de acceso', 'Estado'],
+      filas: () => fundaciones.map((f) => [f.nombre, f.identificador, f.codigo_acceso, f.activo ? 'Activo' : 'Inactivo']) },
+    { key: 'subadmins', archivo: 'subadmins.csv',
+      headers: ['Nombre', 'Telefono', 'Codigo de acceso'],
+      filas: () => subadmins.map((s) => [s.nombre_completo, s.telefono, s.codigo_acceso]) },
+    { key: 'usuarios', archivo: 'usuarios_master.csv',
+      headers: ['Nombre', 'Telefono', 'Codigo de acceso'],
+      filas: () => usuarios.map((u) => [u.nombre, u.telefono, u.codigo_acceso]) },
+  ]
+
+  const exportarUno = (cfg) => descargarCSV(cfg.archivo, cfg.headers, cfg.filas())
+
+  const exportarTodo = () => {
+    const conDatos = EXPORTS.filter((cfg) => cfg.filas().length > 0)
+    conDatos.forEach((cfg, i) => setTimeout(() => exportarUno(cfg), i * 300))
+  }
+
+  const expDe = (key) => EXPORTS.find((cfg) => cfg.key === key)
+
+  const exportarNecesidades = () => {
+    const headers = COLS_NECESIDADES.map((c) => c[0])
+    const filas = necesidades.map((n) => COLS_NECESIDADES.map((c) => c[1](n)))
+    descargarCSV('necesidades.csv', headers, filas)
+  }
+
   if (loading) return <div className="panel"><div className="count-line">Cargando…</div></div>
 
   return (
@@ -224,7 +296,20 @@ export default function MasterPanel({ masterCreds }) {
       <h2>Panel Master</h2>
       <p className="sub">Control total del sistema. Acceso restringido.</p>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        <button className="add-item-btn" onClick={exportarTodo}>
+          ⬇ Descargar códigos (CSV)
+        </button>
+        <button className="add-item-btn" onClick={exportarNecesidades} disabled={necesidades.length === 0}>
+          ⬇ Descargar necesidades ({necesidades.length}) (CSV)
+        </button>
+      </div>
+
       <Seccion titulo={`Centros de salud (${hospitales.length})`} icono="🏥">
+        <button className="mini-link" style={{ display: 'inline-block', marginBottom: 10 }}
+          onClick={() => exportarUno(expDe('hospitales'))} disabled={hospitales.length === 0}>
+          ⬇ Descargar CSV
+        </button>
         {mostrarNuevoH ? (
           <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre del centro</label>
@@ -291,6 +376,10 @@ export default function MasterPanel({ masterCreds }) {
       </Seccion>
 
       <Seccion titulo={`Centros de acopio (${acopios.length})`} icono="📦">
+        <button className="mini-link" style={{ display: 'inline-block', marginBottom: 10 }}
+          onClick={() => exportarUno(expDe('acopios'))} disabled={acopios.length === 0}>
+          ⬇ Descargar CSV
+        </button>
         {mostrarNuevoA ? (
           <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre y apellido</label>
@@ -366,6 +455,10 @@ export default function MasterPanel({ masterCreds }) {
       </Seccion>
 
       <Seccion titulo={`Fundaciones (${fundaciones.length})`} icono="🤝">
+        <button className="mini-link" style={{ display: 'inline-block', marginBottom: 10 }}
+          onClick={() => exportarUno(expDe('fundaciones'))} disabled={fundaciones.length === 0}>
+          ⬇ Descargar CSV
+        </button>
         {mostrarNuevoF ? (
           <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre de la fundación</label>
@@ -432,6 +525,10 @@ export default function MasterPanel({ masterCreds }) {
       </Seccion>
 
       <Seccion titulo={`Subadmins (${subadmins.length})`} icono="🛡️">
+        <button className="mini-link" style={{ display: 'inline-block', marginBottom: 10 }}
+          onClick={() => exportarUno(expDe('subadmins'))} disabled={subadmins.length === 0}>
+          ⬇ Descargar CSV
+        </button>
         {mostrarNuevoS ? (
           <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre y apellido</label>
@@ -500,6 +597,10 @@ export default function MasterPanel({ masterCreds }) {
       </Seccion>
 
       <Seccion titulo={`Usuarios Master (${usuarios.length})`} icono="👤">
+        <button className="mini-link" style={{ display: 'inline-block', marginBottom: 10 }}
+          onClick={() => exportarUno(expDe('usuarios'))} disabled={usuarios.length === 0}>
+          ⬇ Descargar CSV
+        </button>
         {mostrarNuevoU ? (
           <div className="insumo-item" style={{ marginBottom: 10 }}>
             <label>Nombre y apellido</label>

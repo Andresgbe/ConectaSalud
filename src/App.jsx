@@ -281,7 +281,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
-        <footer className="note">Developed by Andres Gil and Juan Andrés Lopez in collaboration with Central University of Venezuela(UCV). 26/6/2026 - 0412-6127323</footer>
+        <footer className="note">Developed by Andres Gil and Juan Andrés Lopez in collaboration with Central University of Venezuela (UCV). 26/6/2026 - 0412-6127323</footer>
       </div>
       <Analytics />
       <SpeedInsights />
