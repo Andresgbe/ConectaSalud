@@ -8,6 +8,7 @@ const URGENCIA_OPCIONES = [
   ['baja', '🟢 Baja'],
 ]
 const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+const HOSPITAL_ESPONTANEO = 'Puestos de salud espontáneos'
 
 function TelefonoInput({ prefijo, setPrefijo, numero, setNumero, placeholder }) {
   return (
@@ -62,6 +63,10 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
       setStatus({ state: 'err', msg: 'Indica el servicio.' })
       return
     }
+    if (hospital === HOSPITAL_ESPONTANEO && !ubicacionEspontanea.trim()) {
+      setStatus({ state: 'err', msg: 'Indica el nombre y ubicación del centro de salud.' })
+      return
+    }
     if (numRecibe.length !== 7) {
       setStatus({ state: 'err', msg: 'Indica el teléfono de quién recibe (7 dígitos).' })
       return
@@ -91,6 +96,7 @@ export default function NeedForm({ hospital, contacto, creadoPor, onPublished })
       creado_por: creadoPor || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
+      ubicacion_espontanea: hospital === HOSPITAL_ESPONTANEO ? ubicacionEspontanea.trim() : null,
       lote_id: loteId,
     }))
 
