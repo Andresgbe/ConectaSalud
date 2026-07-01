@@ -107,8 +107,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       creado_por: creadoPor || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
-      ubicacion_espontanea: hospital === HOSPITAL_ESPONTANEO ? ubicacionEspontanea.trim() : null,   // ← nueva
-      lote_id: loteId,
+      ubicacion_espontanea: hospital === HOSPITAL_ESPONTANEO ? ubicacionEspontanea.trim() : null,
       lote_id: loteId,
     }))
 
