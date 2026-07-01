@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 import NeedItem, { ItemInfoBlock } from './NeedItem.jsx'
 
@@ -30,12 +30,25 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
   const hospital = items[0].hospital
   const incluidos = items.filter((it) => it.incluido !== false)
   const excluidos = items.filter((it) => it.incluido === false)
-  const pendientesSinResolver = items.filter((it) => it.estado_cobertura === 'pendiente' && it.incluido !== false)
+  // Fase 1: caja aún en pendiente (se marca "en proceso" toda junta).
+  const pendientes = items.filter((it) => it.estado_cobertura === 'pendiente' && it.incluido !== false)
+  // Fase 2: caja en proceso, se marca insumo por insumo cuáles hay o no hay.
+  // Incluye los ya marcados "no disponible" para poder re-activarlos con el check.
+  const enProceso = items.filter((it) => it.estado_cobertura === 'en_proceso')
   const estadoGrupo = incluidos[0]?.estado_cobertura || 'pendiente'
   const vaACamino = estadoGrupo === 'lista_para_salir'
   const esUltimoPaso = estadoGrupo === 'enviada'
 
   const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && medicoCreds.hospital === hospital)
+
+  // En la fase 2 los checkboxes representan "disponible" y arrancan todos marcados.
+  // Se re-siembran cuando cambia el conjunto de insumos en_proceso (tras un reload por RPC);
+  // los toggles del usuario son locales y no disparan reload, así que no se pisan.
+  const enProcesoIds = enProceso.map((it) => it.id).join(',')
+  useEffect(() => {
+    setCheckedIds(new Set(enProceso.filter((it) => it.incluido !== false).map((it) => it.id)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enProcesoIds])
 
   // Todos los insumos del grupo comparten la misma info de contacto (mismo lote).
   // Elegimos un representante que refleje también el estado de cobertura si existe.
@@ -47,8 +60,8 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
   )
 
   function metaTexto() {
-    if (pendientesSinResolver.length > 0) {
-      return `${items.length} insumo${items.length === 1 ? '' : 's'} · ${pendientesSinResolver.length} pendiente${pendientesSinResolver.length === 1 ? '' : 's'}`
+    if (pendientes.length > 0) {
+      return `${items.length} insumo${items.length === 1 ? '' : 's'} · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}`
     }
     const partes = []
     if (incluidos.length > 0) {
@@ -68,9 +81,6 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
       else next.add(id)
       return next
     })
-  }
-  function marcarTodos() {
-    setCheckedIds(new Set(pendientesSinResolver.map((it) => it.id)))
   }
 
   async function llamarAvanzar(item, extra = {}) {
@@ -118,17 +128,28 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
     if (medicoCreds) return supabase.rpc('retroceder_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
   }
 
-  async function confirmarPendienteInicial() {
+  // Fase 1: marca toda la caja "en proceso" (reserva). No excluye nada todavía.
+  async function iniciarEnProceso() {
     setBusy(true)
-    for (const item of pendientesSinResolver) {
-      if (checkedIds.has(item.id)) {
-        await llamarAvanzar(item)
-      } else {
+    for (const item of pendientes) {
+      await llamarAvanzar(item)
+    }
+    setBusy(false)
+    onChanged?.()
+  }
+
+  // Fase 2: ya en proceso, confirma qué insumos hay (marcados) y cuáles no (desmarcados).
+  async function confirmarDisponibles() {
+    setBusy(true)
+    for (const item of enProceso) {
+      const marcado = checkedIds.has(item.id)
+      if (marcado && item.incluido === false) {
+        await llamarReactivar(item)
+      } else if (!marcado && item.incluido !== false) {
         await llamarNoDisponible(item)
       }
     }
     setBusy(false)
-    setCheckedIds(new Set())
     onChanged?.()
   }
 
@@ -190,7 +211,7 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
               item={item}
               compact
               groupControlled
-              selectable={pendientesSinResolver.some((p) => p.id === item.id)}
+              selectable={enProceso.some((p) => p.id === item.id)}
               checked={checkedIds.has(item.id)}
               onToggleCheck={toggleCheck}
               onChanged={onChanged}
@@ -204,25 +225,36 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
             />
           ))}
 
-          {puedeCambiar && pendientesSinResolver.length > 0 && (
+          {/* Fase 1: caja en pendiente → se reserva marcándola toda "en proceso". */}
+          {puedeCambiar && pendientes.length > 0 && (
             <div className="request-group-status-line">
-              <button type="button" className="marcar-todos-btn" disabled={busy} onClick={marcarTodos}>
-                Marcar todos
-              </button>
-              <button type="button" className="claim-btn" disabled={busy} onClick={confirmarPendienteInicial}>
+              <button type="button" className="claim-btn" disabled={busy} onClick={iniciarEnProceso}>
                 Marcar en proceso
               </button>
             </div>
           )}
 
-          {puedeCambiar && pendientesSinResolver.length === 0 && incluidos.length === 0 && excluidos.length > 0 && (
+          {/* Fase 2: caja en proceso → se marca con checks qué insumos hay o no hay. */}
+          {puedeCambiar && pendientes.length === 0 && enProceso.length > 0 && (
+            <div className="request-group-status-line">
+              <button type="button" className="claim-btn" disabled={busy} onClick={confirmarDisponibles}>
+                Confirmar
+              </button>
+              {incluidos.length > 0 && (
+                <button className="claim-btn" disabled={busy} onClick={avanzarGrupo}>{SIGUIENTE_LABEL[estadoGrupo]}</button>
+              )}
+              <button className="undo-btn" disabled={busy} onClick={deshacerGrupo}>Deshacer</button>
+            </div>
+          )}
+
+          {puedeCambiar && pendientes.length === 0 && enProceso.length === 0 && incluidos.length === 0 && excluidos.length > 0 && (
             <div className="request-group-status-line">
               <span className="item-sub">Ningún insumo fue marcado como incluido en este request.</span>
               <button className="undo-btn" disabled={busy} onClick={deshacerGrupo}>Deshacer</button>
             </div>
           )}
 
-          {puedeCambiar && pendientesSinResolver.length === 0 && incluidos.length > 0 && (
+          {puedeCambiar && pendientes.length === 0 && enProceso.length === 0 && incluidos.length > 0 && (
             <div className="request-group-status-line">
               {estadoGrupo !== 'recibida' && !vaACamino && (
                 <button className="claim-btn" disabled={busy} onClick={avanzarGrupo}>{SIGUIENTE_LABEL[estadoGrupo]}</button>

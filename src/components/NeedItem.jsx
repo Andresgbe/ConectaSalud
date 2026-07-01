@@ -203,7 +203,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         <button className="claim-btn" disabled={busy} onClick={avanzar}>{SIGUIENTE_LABEL[item.estado_cobertura]}</button>
       )}
 
-      {esPendiente && (
+      {(esPendiente || item.estado_cobertura === 'en_proceso') && (
         <button className="undo-btn" disabled={busy} onClick={marcarNoDisponible}>No disponible</button>
       )}
 
@@ -257,7 +257,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     return (
       <div className={`lote-item estado-bg-${item.estado_cobertura}`}>
         <div className="item-line">
-          {selectable && !noDisponible && (
+          {selectable && (
             <input
               type="checkbox"
               className="item-checkbox"
