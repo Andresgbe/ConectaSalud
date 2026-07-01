@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 import NeedItem from './NeedItem.jsx'
-import NeedRequestGroup from './NeedRequestGroup.jsx'
+import NeedRequestGroup from './Needrequestgroup.jsx'
 
 function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
