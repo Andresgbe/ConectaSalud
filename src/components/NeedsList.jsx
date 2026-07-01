@@ -40,7 +40,14 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     return needs.filter((n) => {
       if (n.deshabilitada) return false
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
-      if (filters.status && n.estado_cobertura !== filters.status) return false
+      if (filters.status === 'no_disponible') {
+        if (n.incluido !== false) return false
+      } else {
+        // Los no disponibles solo se ven con el filtro "No disponible":
+        // fuera de la vista general y de los demás filtros de estado.
+        if (n.incluido === false) return false
+        if (filters.status && n.estado_cobertura !== filters.status) return false
+      }
       if (txt && !([n.insumo, n.hospital, n.servicio, n.contacto, n.creado_por, n.receptor_nombre, n.receptor_telefono, n.receptor_telefono_2, n.cubierto_por, n.transportista_nombre, n.transportista_telefono].some(v => v && normalizar(v).includes(txt)))) return false
       return true
     })
@@ -68,7 +75,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   )
 
   const stats = useMemo(() => ({
-    pendientes: filteredItems.filter((n) => n.estado_cobertura === 'pendiente').length,
+    pendientes: filteredItems.filter((n) => n.estado_cobertura === 'pendiente' && n.incluido !== false).length,
     hospitales: hospitalesUnicos,
     urgentes: filteredItems.filter((n) => n.urgencia === 'urgente').length,
   }), [filteredItems, hospitalesUnicos])
@@ -133,6 +140,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           <option value="lista_para_salir">Lista para salir</option>
           <option value="enviada">En camino</option>
           <option value="recibida">Recibida</option>
+          <option value="no_disponible">No disponible</option>
         </select>
         <input
           type="text" placeholder="Buscar insumo u hospital…"
