@@ -255,7 +255,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   if (compact) {
     const noDisponible = item.incluido === false
     return (
-      <div className={`lote-item estado-bg-${item.estado_cobertura}`}>
+      <div className={`lote-item estado-bg-${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>
         <div className="item-line">
           {selectable && (
             <input
@@ -286,7 +286,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   }
 
   return (
-    <div className={`need-card estado-bg-${item.estado_cobertura}`}>
+    <div className={`need-card estado-bg-${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>
       <div className="need-top">
         <span className="item-hospital">{item.hospital}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

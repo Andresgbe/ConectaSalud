@@ -50,6 +50,11 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enProcesoIds])
 
+  // Comentario general de la caja (mismo para todo el lote). Se re-siembra tras un reload.
+  const comentarioGuardado = items.find((it) => it.comentario)?.comentario || ''
+  const [comentario, setComentario] = useState(comentarioGuardado)
+  useEffect(() => { setComentario(comentarioGuardado) }, [comentarioGuardado])
+
   // Todos los insumos del grupo comparten la misma info de contacto (mismo lote).
   // Elegimos un representante que refleje también el estado de cobertura si existe.
   const infoRef = items.find((it) => it.transportista_nombre || it.cubierto_por) || incluidos[0] || items[0]
@@ -173,6 +178,22 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
     onChanged?.()
   }
 
+  async function llamarGuardarComentario(texto) {
+    const p_lote_id = items[0].lote_id
+    if (masterCreds) return supabase.rpc('guardar_comentario_lote_master', { p_lote_id, p_master_telefono: masterCreds.telefono, p_comentario: texto })
+    if (subadminCreds) return supabase.rpc('guardar_comentario_lote_subadmin', { p_lote_id, p_telefono: subadminCreds.telefono, p_comentario: texto })
+    if (acopioCreds) return supabase.rpc('guardar_comentario_lote_acopio', { p_lote_id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo, p_comentario: texto })
+    if (fundacionCreds) return supabase.rpc('guardar_comentario_lote_fundacion', { p_lote_id, p_telefono: fundacionCreds.telefono, p_comentario: texto })
+    if (medicoCreds) return supabase.rpc('guardar_comentario_lote_medico', { p_lote_id, p_telefono: medicoCreds.telefono, p_comentario: texto })
+  }
+
+  async function guardarComentario() {
+    setBusy(true)
+    await llamarGuardarComentario(comentario)
+    setBusy(false)
+    onChanged?.()
+  }
+
   async function deshacerGrupo() {
     setBusy(true)
     if (incluidos.length > 0 && estadoGrupo !== 'pendiente') {
@@ -224,6 +245,30 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
               subadminCreds={subadminCreds}
             />
           ))}
+
+          {/* Comentario de la caja: visible para todos; editable por quien gestiona. */}
+          {!puedeCambiar && comentarioGuardado && (
+            <div className="lote-comentario">💬 {comentarioGuardado}</div>
+          )}
+          {puedeCambiar && (
+            <div className="lote-comentario-editor">
+              <textarea
+                className="nota-recepcion-input"
+                placeholder="Comentario (opcional): si algo no está completo o falta algún insumo…"
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+                rows={2}
+              />
+              <button
+                type="button"
+                className="marcar-todos-btn"
+                disabled={busy || comentario.trim() === comentarioGuardado}
+                onClick={guardarComentario}
+              >
+                Guardar comentario
+              </button>
+            </div>
+          )}
 
           {/* Fase 1: caja en pendiente → se reserva marcándola toda "en proceso". */}
           {puedeCambiar && pendientes.length > 0 && (
