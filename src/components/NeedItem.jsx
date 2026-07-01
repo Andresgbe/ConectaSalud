@@ -29,6 +29,31 @@ export function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
+// Datos de contacto compartidos por toda una solicitud (mismo lote).
+// Se muestra una sola vez: en la tarjeta individual o arriba del grupo.
+export function ItemInfoBlock({ item }) {
+  return (
+    <div className="item-sub item-sub-vertical">
+      <div>{horaYrelativo(item.creado_en)}</div>
+      {item.ubicacion_espontanea && <div><b>CENTRO:</b> {item.ubicacion_espontanea}</div>}
+      {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
+      {(item.receptor_nombre || item.receptor_telefono || item.receptor_telefono_2) && (
+        <div>
+          {item.receptor_nombre && <><b>🧑 Recibe:</b> {item.receptor_nombre}{(item.receptor_telefono || item.receptor_telefono_2) && ' · '}</>}
+          {item.receptor_telefono && <><b>📞</b> {item.receptor_telefono}</>}
+          {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
+        </div>
+      )}
+      {item.contacto && <div>{item.contacto}</div>}
+      {item.creado_por && <div>{item.creado_por}</div>}
+      {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
+      {item.transportista_nombre && (
+        <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
+      )}
+    </div>
+  )
+}
+
 export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact, groupControlled, selectable, checked, onToggleCheck }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
@@ -41,6 +66,8 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && esMiHospital)
   const esUltimoPaso = item.estado_cobertura === 'enviada'
   const vaACamino = item.estado_cobertura === 'lista_para_salir'
+  const noDisponible = item.incluido === false
+  const esPendiente = item.estado_cobertura === 'pendiente'
 
   async function avanzar() {
     if (vaACamino) {
@@ -82,6 +109,40 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       await supabase.rpc('retroceder_estado_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
     } else if (medicoCreds) {
       await supabase.rpc('retroceder_estado_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
+    }
+    setBusy(false)
+    onChanged?.()
+  }
+
+  async function marcarNoDisponible() {
+    setBusy(true)
+    if (masterCreds) {
+      await supabase.rpc('marcar_no_disponible_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    } else if (subadminCreds) {
+      await supabase.rpc('marcar_no_disponible_subadmin', { p_id: item.id, p_telefono: subadminCreds.telefono })
+    } else if (acopioCreds) {
+      await supabase.rpc('marcar_no_disponible_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
+    } else if (fundacionCreds) {
+      await supabase.rpc('marcar_no_disponible_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
+    } else if (medicoCreds) {
+      await supabase.rpc('marcar_no_disponible_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
+    }
+    setBusy(false)
+    onChanged?.()
+  }
+
+  async function reactivar() {
+    setBusy(true)
+    if (masterCreds) {
+      await supabase.rpc('reactivar_insumo_master', { p_id: item.id, p_master_telefono: masterCreds.telefono })
+    } else if (subadminCreds) {
+      await supabase.rpc('reactivar_insumo_subadmin', { p_id: item.id, p_telefono: subadminCreds.telefono })
+    } else if (acopioCreds) {
+      await supabase.rpc('reactivar_insumo_acopio', { p_id: item.id, p_telefono: acopioCreds.telefono, p_codigo: acopioCreds.codigo })
+    } else if (fundacionCreds) {
+      await supabase.rpc('reactivar_insumo_fundacion', { p_id: item.id, p_telefono: fundacionCreds.telefono })
+    } else if (medicoCreds) {
+      await supabase.rpc('reactivar_insumo_medico', { p_id: item.id, p_telefono: medicoCreds.telefono })
     }
     setBusy(false)
     onChanged?.()
@@ -131,9 +192,19 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   const puedeEliminar = isAdmin || !!masterCreds || esMiHospital || (fundacionCreds && item.contacto === fundacionCreds.telefono)
 
   const accionesBlock = puedeCambiar && (
+    noDisponible ? (
+      <div className="status-line">
+        <span className="item-sub">Marcado como no disponible.</span>
+        <button className="undo-btn" disabled={busy} onClick={reactivar}>Reactivar</button>
+      </div>
+    ) : (
     <div className="status-line">
       {item.estado_cobertura !== 'recibida' && !vaACamino && (
         <button className="claim-btn" disabled={busy} onClick={avanzar}>{SIGUIENTE_LABEL[item.estado_cobertura]}</button>
+      )}
+
+      {(esPendiente || item.estado_cobertura === 'en_proceso') && (
+        <button className="undo-btn" disabled={busy} onClick={marcarNoDisponible}>No disponible</button>
       )}
 
       {vaACamino && !transAbierto && (
@@ -162,6 +233,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         )
       )}
     </div>
+    )
   )
 
   const deshabilitarBtn = puedeDeshabilitar && (
@@ -176,32 +248,16 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     </button>
   )
 
-  const infoBlock = (
-    <div className="item-sub item-sub-vertical">
-      <div>{horaYrelativo(item.creado_en)}</div>
-      {item.ubicacion_espontanea && <div><b>CENTRO:</b> {item.ubicacion_espontanea}</div>} 
-      {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
-      {(item.receptor_telefono || item.receptor_telefono_2) && (
-        <div>
-          {item.receptor_telefono && <><b>📞 Recibe:</b> {item.receptor_telefono}</>}
-          {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
-        </div>
-      )}
-      {item.contacto && <div>{item.contacto}</div>}
-      {item.creado_por && <div>{item.creado_por}</div>}
-      {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
-      {item.transportista_nombre && (
-        <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
-      )}
-    </div>
-  )
+  // En grupos la info de contacto se muestra una sola vez, arriba del grupo,
+  // así que aquí la omitimos para no duplicarla.
+  const infoBlock = groupControlled ? null : <ItemInfoBlock item={item} />
 
   if (compact) {
     const noDisponible = item.incluido === false
     return (
-      <div className={`lote-item estado-bg-${item.estado_cobertura}`}>
+      <div className={`lote-item estado-bg-${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>
         <div className="item-line">
-          {selectable && !noDisponible && (
+          {selectable && (
             <input
               type="checkbox"
               className="item-checkbox"
@@ -220,6 +276,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
         {item.notas && <div className="need-notas">{item.notas}</div>}
 
+        {noDisponible && item.no_disponible_por && (
+          <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
+        )}
+
         {infoBlock}
 
         {groupControlled
@@ -230,11 +290,11 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   }
 
   return (
-    <div className={`need-card estado-bg-${item.estado_cobertura}`}>
+    <div className={`need-card estado-bg-${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>
       <div className="need-top">
         <span className="item-hospital">{item.hospital}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className={`item-status ${item.estado_cobertura}`}>{STATUS_LABEL[item.estado_cobertura]}</span>
+          <span className={`item-status ${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>{noDisponible ? 'No disponible' : STATUS_LABEL[item.estado_cobertura]}</span>
           {deshabilitarBtn}
         </span>
       </div>
@@ -245,6 +305,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       </div>
 
       {item.notas && <div className="need-notas">{item.notas}</div>}
+
+      {noDisponible && item.no_disponible_por && (
+        <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
+      )}
 
       {infoBlock}
 

@@ -257,8 +257,11 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .need-card.estado-bg-lista_para_salir{background:#fdfaef;}
 .need-card.estado-bg-enviada{background:#eef4fc;}
 .need-card.estado-bg-recibida{background:#eef8f1;}
+.need-card.estado-bg-no_disponible{background:#f1f1f1;}
+.need-card.estado-bg-no_disponible b{color:#8a8a8a;}
 .item-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.95rem;}
 .item-sub{font-size:.8rem;color:#666;margin-top:3px;}
+.item-sub.no-disponible-por{color:var(--rojo,#c0392b);font-weight:600;}
 
 .tag-mini{
   font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;
@@ -420,9 +423,14 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .request-group-meta{font-size:.8rem;color:#666;}
 
 .request-group-body{padding:4px 14px 14px 18px;border-top:1px dashed var(--line);}
+.request-group-info{padding:8px 0 10px;margin-bottom:4px;border-bottom:1px dashed var(--line);}
 
 .lote-item{border-bottom:1px solid var(--line);padding:10px 0;}
 .lote-item:last-child{border-bottom:none;}
+/* Fondo por estado para distinguir de un vistazo en el grupo. */
+.lote-item.estado-bg-en_proceso{background:#fdf3e7;padding-left:10px;padding-right:10px;}
+.lote-item.estado-bg-no_disponible{background:#f1f1f1;padding-left:10px;padding-right:10px;}
+.lote-item.estado-bg-no_disponible b{color:#8a8a8a;}
 
 .marcar-todos-btn{
   border:1px dashed var(--teal);background:none;color:var(--teal-dark);font-weight:700;
@@ -431,6 +439,11 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .marcar-todos-btn:hover{background:var(--verde-bg);}
 
 .request-group-status-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0;padding-top:10px;border-top:1px dashed var(--line);}
+
+.lote-comentario{margin:10px 0 0;font-size:.9rem;color:#7a4a00;background:#fff8ee;border:1px solid #f0dcc0;border-radius:8px;padding:8px 10px;}
+.lote-comentario-editor{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;}
+.lote-comentario-editor textarea{width:100%;resize:vertical;min-height:40px;font-family:inherit;}
+.lote-comentario-editor .marcar-todos-btn{align-self:flex-start;}
 
 .item-status.no_disponible{background:#eee;color:#888;}
 

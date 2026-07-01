@@ -40,8 +40,15 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     return needs.filter((n) => {
       if (n.deshabilitada) return false
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
-      if (filters.status && n.estado_cobertura !== filters.status) return false
-      if (txt && !([n.insumo, n.hospital, n.servicio, n.contacto, n.creado_por, n.receptor_telefono, n.receptor_telefono_2, n.cubierto_por, n.transportista_nombre, n.transportista_telefono].some(v => v && normalizar(v).includes(txt)))) return false
+      if (filters.status === 'no_disponible') {
+        if (n.incluido !== false) return false
+      } else {
+        // Los no disponibles solo se ven con el filtro "No disponible":
+        // fuera de la vista general y de los demás filtros de estado.
+        if (n.incluido === false) return false
+        if (filters.status && n.estado_cobertura !== filters.status) return false
+      }
+      if (txt && !([n.insumo, n.hospital, n.servicio, n.contacto, n.creado_por, n.receptor_nombre, n.receptor_telefono, n.receptor_telefono_2, n.cubierto_por, n.transportista_nombre, n.transportista_telefono].some(v => v && normalizar(v).includes(txt)))) return false
       return true
     })
   }, [needs, filters])
@@ -68,7 +75,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   )
 
   const stats = useMemo(() => ({
-    pendientes: filteredItems.filter((n) => n.estado_cobertura === 'pendiente').length,
+    pendientes: filteredItems.filter((n) => n.estado_cobertura === 'pendiente' && n.incluido !== false).length,
     hospitales: hospitalesUnicos,
     urgentes: filteredItems.filter((n) => n.urgencia === 'urgente').length,
   }), [filteredItems, hospitalesUnicos])
@@ -84,7 +91,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         Ordenadas de la más reciente a la más antigua. Marca lo que vas a llevar para que otros no dupliquen el esfuerzo.
       </p>
 
-      <div className="stats-row">
+      <div className="stats-row"> 
         <div className="stat-card stat-pendientes">
           <span className="stat-icon-wrap">
             <svg className="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v1H7V4a2 2 0 0 1 2-2z"/><path d="M7 5h10v15a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
@@ -133,6 +140,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
           <option value="lista_para_salir">Lista para salir</option>
           <option value="enviada">En camino</option>
           <option value="recibida">Recibida</option>
+          <option value="no_disponible">No disponible</option>
         </select>
         <input
           type="text" placeholder="Buscar insumo u hospital…"
