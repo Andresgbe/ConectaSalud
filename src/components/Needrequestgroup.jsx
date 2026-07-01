@@ -41,12 +41,14 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
 
   const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && medicoCreds.hospital === hospital)
 
-  // En la fase 2 los checkboxes representan "disponible" y arrancan todos marcados.
+  // En la fase 2 los checkboxes representan "disponible" y arrancan vacíos:
+  // quien gestiona marca uno por uno los insumos que SÍ tiene; lo que quede
+  // sin marcar al Confirmar se marca "no disponible".
   // Se re-siembran cuando cambia el conjunto de insumos en_proceso (tras un reload por RPC);
   // los toggles del usuario son locales y no disparan reload, así que no se pisan.
   const enProcesoIds = enProceso.map((it) => it.id).join(',')
   useEffect(() => {
-    setCheckedIds(new Set(enProceso.filter((it) => it.incluido !== false).map((it) => it.id)))
+    setCheckedIds(new Set())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enProcesoIds])
 
@@ -211,7 +213,7 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
   }
 
   return (
-    <div className={`request-group u-${urgenciaTop}`}>
+    <div className={`request-group u-${urgenciaTop} estado-bg-${estadoGrupo}`}>
       <button type="button" className="request-group-header" onClick={() => setCollapsed((v) => !v)}>
         <div className="request-group-title">
           <h3>{hospital}</h3>

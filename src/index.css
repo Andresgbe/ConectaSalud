@@ -412,6 +412,14 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .request-group.u-alta::before{background:var(--rojo);}
 .request-group.u-mediana::before{background:var(--ambar);}
 .request-group.u-baja::before{background:var(--verde);}
+/* Fondo de la caja según el estado de cobertura (misma paleta que los items sueltos). */
+.request-group.estado-bg-pendiente{background:#fdf3f2;}
+.request-group.estado-bg-en_proceso{background:#fdf6ef;}
+.request-group.estado-bg-lista_para_salir{background:#fdf1e3;}
+.request-group.estado-bg-enviada{background:#eef4fc;}
+.request-group.estado-bg-recibida{background:#eef8f1;}
+/* El header es transparente para dejar ver el fondo; el hover mantiene el matiz. */
+.request-group[class*="estado-bg-"] .request-group-header:hover{background:rgba(0,0,0,.035);}
 
 .request-group-header{
   width:100%;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
