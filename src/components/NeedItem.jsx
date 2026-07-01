@@ -171,7 +171,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       style={{ color: item.deshabilitada ? 'var(--verde)' : 'var(--rojo)', fontSize: '.75rem' }}
       disabled={busy}
       onClick={toggleDeshabilitada}
-    >
+    > 
       {item.deshabilitada ? 'Rehabilitar' : 'Deshabilitar'}
     </button>
   )
