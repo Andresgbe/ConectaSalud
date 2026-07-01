@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
 
 function Seccion({ titulo, icono, children }) {
   const [abierta, setAbierta] = useState(false)

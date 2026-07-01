@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient.js'
-import NeedItem from './NeedItem.jsx'
+import NeedItem, { ItemInfoBlock } from './NeedItem.jsx'
 
 const STATUS_LABEL = {
   pendiente: 'Pendiente',
@@ -36,6 +36,10 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
   const esUltimoPaso = estadoGrupo === 'enviada'
 
   const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && medicoCreds.hospital === hospital)
+
+  // Todos los insumos del grupo comparten la misma info de contacto (mismo lote).
+  // Elegimos un representante que refleje también el estado de cobertura si existe.
+  const infoRef = items.find((it) => it.transportista_nombre || it.cubierto_por) || incluidos[0] || items[0]
 
   const urgenciaTop = items.reduce(
     (top, it) => (ORDEN_URGENCIA[it.urgencia] < ORDEN_URGENCIA[top] ? it.urgencia : top),
@@ -176,6 +180,10 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
 
       {!collapsed && (
         <div className="request-group-body">
+          <div className="request-group-info">
+            <ItemInfoBlock item={infoRef} />
+          </div>
+
           {items.map((item) => (
             <NeedItem
               key={item.id}

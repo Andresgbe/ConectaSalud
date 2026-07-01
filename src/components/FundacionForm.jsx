@@ -7,7 +7,7 @@ const URGENCIA_OPCIONES = [
   ['mediana', '🟡 Mediana'],
   ['baja', '🟢 Baja'],
 ]
-const PREFIJOS = ['0412', '0414', '0416', '0424', '0426']
+const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
 const HOSPITAL_ESPONTANEO = 'Puestos de salud espontáneos'
 
 function TelefonoInput({ prefijo, setPrefijo, numero, setNumero, placeholder }) {
@@ -40,6 +40,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
   const [hospital, setHospital] = useState('')
   const [ubicacionEspontanea, setUbicacionEspontanea] = useState('')
   const [servicio, setServicio] = useState('')
+  const [nombreRecibe, setNombreRecibe] = useState('')
   const [prefRecibe, setPrefRecibe] = useState('0414')
   const [numRecibe, setNumRecibe] = useState('')
   const [prefRecibe2, setPrefRecibe2] = useState('0414')
@@ -78,6 +79,10 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       setStatus({ state: 'err', msg: 'Indica el nombre y ubicación del centro de salud.' })
       return
     }
+    if (!nombreRecibe.trim()) {
+      setStatus({ state: 'err', msg: 'Indica el nombre de quién recibe.' })
+      return
+    }
     if (numRecibe.length !== 7) {
       setStatus({ state: 'err', msg: 'Indica el teléfono de quién recibe (7 dígitos).' })
       return
@@ -105,6 +110,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       notas: notas.trim(),
       servicio: servicio.trim(),
       creado_por: creadoPor || null,
+      receptor_nombre: nombreRecibe.trim() || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,
       ubicacion_espontanea: hospital === HOSPITAL_ESPONTANEO ? ubicacionEspontanea.trim() : null,
@@ -124,6 +130,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
     setHospital('')
     setUbicacionEspontanea('')
     setServicio('')
+    setNombreRecibe('')
     setNumRecibe('')
     setNumRecibe2('')
     setMostrarRecibe2(false)
@@ -160,6 +167,14 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
         <input type="text" required value={servicio} onChange={(e) => setServicio(e.target.value)} placeholder="Ej: Cirugía" />
 
         <label className="req">¿Quién recibe?</label>
+        <input
+          type="text"
+          required
+          value={nombreRecibe}
+          onChange={(e) => setNombreRecibe(e.target.value)}
+          placeholder="Nombre de quién recibe"
+          style={{ marginBottom: 8 }}
+        />
         <TelefonoInput prefijo={prefRecibe} setPrefijo={setPrefRecibe} numero={numRecibe} setNumero={setNumRecibe} />
 
         {mostrarRecibe2 ? (

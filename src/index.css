@@ -420,6 +420,7 @@ footer.note{text-align:center;color:#999;font-size:.78rem;margin:30px 0 10px;}
 .request-group-meta{font-size:.8rem;color:#666;}
 
 .request-group-body{padding:4px 14px 14px 18px;border-top:1px dashed var(--line);}
+.request-group-info{padding:8px 0 10px;margin-bottom:4px;border-bottom:1px dashed var(--line);}
 
 .lote-item{border-bottom:1px solid var(--line);padding:10px 0;}
 .lote-item:last-child{border-bottom:none;}

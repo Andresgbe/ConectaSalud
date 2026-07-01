@@ -29,6 +29,31 @@ export function horaYrelativo(iso) {
   return `a las ${hora} · ${rel}`
 }
 
+// Datos de contacto compartidos por toda una solicitud (mismo lote).
+// Se muestra una sola vez: en la tarjeta individual o arriba del grupo.
+export function ItemInfoBlock({ item }) {
+  return (
+    <div className="item-sub item-sub-vertical">
+      <div>{horaYrelativo(item.creado_en)}</div>
+      {item.ubicacion_espontanea && <div><b>CENTRO:</b> {item.ubicacion_espontanea}</div>}
+      {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
+      {(item.receptor_nombre || item.receptor_telefono || item.receptor_telefono_2) && (
+        <div>
+          {item.receptor_nombre && <><b>🧑 Recibe:</b> {item.receptor_nombre}{(item.receptor_telefono || item.receptor_telefono_2) && ' · '}</>}
+          {item.receptor_telefono && <><b>📞</b> {item.receptor_telefono}</>}
+          {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
+        </div>
+      )}
+      {item.contacto && <div>{item.contacto}</div>}
+      {item.creado_por && <div>{item.creado_por}</div>}
+      {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
+      {item.transportista_nombre && (
+        <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
+      )}
+    </div>
+  )
+}
+
 export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact, groupControlled, selectable, checked, onToggleCheck }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
@@ -176,25 +201,9 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
     </button>
   )
 
-  const infoBlock = (
-    <div className="item-sub item-sub-vertical">
-      <div>{horaYrelativo(item.creado_en)}</div>
-      {item.ubicacion_espontanea && <div><b>CENTRO:</b> {item.ubicacion_espontanea}</div>} 
-      {item.servicio && <div><b>SERVICIO:</b> {item.servicio}</div>}
-      {(item.receptor_telefono || item.receptor_telefono_2) && (
-        <div>
-          {item.receptor_telefono && <><b>📞 Recibe:</b> {item.receptor_telefono}</>}
-          {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
-        </div>
-      )}
-      {item.contacto && <div>{item.contacto}</div>}
-      {item.creado_por && <div>{item.creado_por}</div>}
-      {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
-      {item.transportista_nombre && (
-        <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
-      )}
-    </div>
-  )
+  // En grupos la info de contacto se muestra una sola vez, arriba del grupo,
+  // así que aquí la omitimos para no duplicarla.
+  const infoBlock = groupControlled ? null : <ItemInfoBlock item={item} />
 
   if (compact) {
     const noDisponible = item.incluido === false
