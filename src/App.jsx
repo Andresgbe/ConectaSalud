@@ -276,7 +276,6 @@ export default function App() {
                 : <Navigate to="/login" replace />
             }
           />
-
           <Route path="/master" element={masterCreds ? <MasterPanel masterCreds={masterCreds} /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

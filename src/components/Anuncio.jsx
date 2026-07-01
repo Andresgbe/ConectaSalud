@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
 
-export default function Anuncio({ masterCreds }) {
+export default function Anuncio({ masterCreds, subadminCreds }) {
+  const gestor = masterCreds || subadminCreds
   const [anuncio, setAnuncio] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editando, setEditando] = useState(false)
@@ -28,10 +29,15 @@ export default function Anuncio({ masterCreds }) {
   async function publicar() {
     if (!texto.trim()) return
     setBusy(true)
-    const { error } = await supabase.rpc('master_publicar_anuncio', {
-      p_master_telefono: masterCreds.telefono,
-      p_mensaje: texto.trim(),
-    })
+    const { error } = masterCreds
+      ? await supabase.rpc('master_publicar_anuncio', {
+          p_master_telefono: masterCreds.telefono,
+          p_mensaje: texto.trim(),
+        })
+      : await supabase.rpc('subadmin_publicar_anuncio', {
+          p_telefono: subadminCreds.telefono,
+          p_mensaje: texto.trim(),
+        })
     setBusy(false)
     if (!error) {
       setEditando(false)
@@ -43,15 +49,19 @@ export default function Anuncio({ masterCreds }) {
   async function quitar() {
     if (!confirm('¿Quitar el anuncio?')) return
     setBusy(true)
-    await supabase.rpc('master_quitar_anuncio', { p_master_telefono: masterCreds.telefono })
+    if (masterCreds) {
+      await supabase.rpc('master_quitar_anuncio', { p_master_telefono: masterCreds.telefono })
+    } else {
+      await supabase.rpc('subadmin_quitar_anuncio', { p_telefono: subadminCreds.telefono })
+    }
     setBusy(false)
     cargar()
   }
 
   if (loading) return null
 
-  // Visitante sin sesión de master: solo se muestra si hay un anuncio activo
-  if (!masterCreds) {
+  // Rol sin permisos de gestión: solo se muestra si hay un anuncio activo
+  if (!gestor) {
     if (!anuncio) return null
     return (
       <div className="anuncio-banner">
@@ -61,7 +71,7 @@ export default function Anuncio({ masterCreds }) {
     )
   }
 
-  // Master conectado: siempre ve la barra, con opción de agregar/editar/quitar
+  // Master o subadmin conectado: siempre ve la barra, con opción de agregar/editar/quitar
   return (
     <div className="anuncio-banner">
       <span className="anuncio-label">Anuncio</span>

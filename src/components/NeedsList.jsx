@@ -121,9 +121,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         </div>
       </div>
 
-      {/* 
-      <Anuncio masterCreds={masterCreds} /> 
-      */}
+      <Anuncio masterCreds={masterCreds} subadminCreds={subadminCreds} />
 
       <div className="filters">
         <select value={filters.urgencia} onChange={(e) => setFilter('urgencia', e.target.value)}>
