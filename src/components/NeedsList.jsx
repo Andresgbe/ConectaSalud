@@ -41,7 +41,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
       if (n.deshabilitada) return false
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
       if (filters.status && n.estado_cobertura !== filters.status) return false
-      if (txt && !(normalizar(n.insumo).includes(txt) || normalizar(n.hospital).includes(txt))) return false
+      if (txt && !([n.insumo, n.hospital, n.servicio, n.contacto, n.creado_por, n.receptor_telefono, n.receptor_telefono_2, n.cubierto_por, n.transportista_nombre, n.transportista_telefono].some(v => v && normalizar(v).includes(txt)))) return false
       return true
     })
   }, [needs, filters])
