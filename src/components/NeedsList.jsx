@@ -8,6 +8,8 @@ function normalizar(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
+const TAM_PAGINA = 20  // centros/lotes por p\u00e1gina
+
 export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds }) {
   const [verDeshabilitadas, setVerDeshabilitadas] = useState(false)
   const [verMisRechazadas, setVerMisRechazadas] = useState(false)
@@ -15,6 +17,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   const [centrosActivos, setCentrosActivos] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
+  const [visibles, setVisibles] = useState(TAM_PAGINA)
   const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds || !!masterCreds || !!subadminCreds
   // Centro del operador logueado (solo master/subadmin llevan centro).
   const miCentro = masterCreds?.nombre_centro || subadminCreds?.nombre_centro || null
@@ -74,6 +77,15 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     }
     return order.map((key) => groups.get(key))
   }, [filteredItems])
+
+  // Paginación solo en el render: se corta sobre grupos completos para no partir un lote.
+  const gruposVisibles = useMemo(
+    () => groupedItems.slice(0, visibles),
+    [groupedItems, visibles]
+  )
+
+  // Volver a la primera página cuando cambian los filtros/búsqueda.
+  useEffect(() => { setVisibles(TAM_PAGINA) }, [filters])
 
   const deshabilitadas = useMemo(() => needs.filter((n) => n.deshabilitada), [needs])
 
@@ -176,7 +188,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
         <div className="empty">No hay necesidades que coincidan con estos filtros todavía.</div>
       )}
 
-      {groupedItems.map((group) =>
+      {gruposVisibles.map((group) =>
         group.length > 1 ? (
           <NeedRequestGroup
             key={group[0].lote_id}
@@ -206,6 +218,14 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
             centrosActivos={centrosActivos}
           />
         )
+      )}
+
+      {!loading && groupedItems.length > visibles && (
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <button type="button" className="claim-btn" onClick={() => setVisibles((v) => v + TAM_PAGINA)}>
+            Ver más ({groupedItems.length - visibles} restante{groupedItems.length - visibles === 1 ? '' : 's'})
+          </button>
+        </div>
       )}
 
       {(masterCreds || subadminCreds) && misRechazadas.length > 0 && (
