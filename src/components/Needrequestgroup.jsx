@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient.js'
-import NeedItem, { ItemInfoBlock } from './NeedItem.jsx'
+import NeedItem, { ItemInfoBlock, CentroChip, centroDeItem } from './NeedItem.jsx'
 
 const STATUS_LABEL = {
   pendiente: 'Pendiente',
@@ -222,7 +222,10 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
     <div className={`request-group u-${urgenciaTop} estado-bg-${estadoGrupo}`}>
       <button type="button" className="request-group-header" onClick={() => setCollapsed((v) => !v)}>
         <div className="request-group-title">
-          <h3>{hospital}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3>{hospital}</h3>
+            <CentroChip centro={centroDeItem(infoRef)} />
+          </div>
           <div className="request-group-meta">{metaTexto()}</div>
         </div>
         <span className="collapse-btn">{collapsed ? '+' : '−'}</span>
@@ -231,7 +234,7 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
       {!collapsed && (
         <div className="request-group-body">
           <div className="request-group-info">
-            <ItemInfoBlock item={infoRef} />
+            <ItemInfoBlock item={infoRef} verCreador={!!adminCreds || !!masterCreds || !!subadminCreds} />
           </div>
 
           {items.map((item) => (

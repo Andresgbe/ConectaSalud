@@ -35,7 +35,7 @@ function nuevoItem() {
   return { uid: `item-${itemSeq}`, insumo: '', cantidad: '', urgencia: '' }
 }
 
-export default function FundacionForm({ contacto, creadoPor, onPublished }) {
+export default function FundacionForm({ contacto, creadoPor, centroCreador = null, onPublished }) {
   const [hospitales, setHospitales] = useState([])
   const [hospital, setHospital] = useState('')
   const [ubicacionEspontanea, setUbicacionEspontanea] = useState('')
@@ -110,6 +110,7 @@ export default function FundacionForm({ contacto, creadoPor, onPublished }) {
       notas: notas.trim(),
       servicio: servicio.trim(),
       creado_por: creadoPor || null,
+      creado_por_centro: centroCreador || null,
       receptor_nombre: nombreRecibe.trim() || null,
       receptor_telefono: prefRecibe + numRecibe,
       receptor_telefono_2: numRecibe2.length === 7 ? (prefRecibe2 + numRecibe2) : null,

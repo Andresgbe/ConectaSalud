@@ -270,9 +270,9 @@ export default function App() {
               fundacionCreds
                 ? <FundacionForm contacto={fundacionCreds.telefono} creadoPor={fundacionCreds.nombre_completo} onPublished={() => navigate('/')} />
                 : masterCreds
-                ? <FundacionForm contacto={masterCreds.telefono} creadoPor={masterCreds.nombre_completo} onPublished={() => navigate('/')} />
+                ? <FundacionForm contacto={masterCreds.telefono} creadoPor={masterCreds.nombre_completo} centroCreador={masterCreds.nombre_centro} onPublished={() => navigate('/')} />
                 : subadminCreds
-                ? <FundacionForm contacto={subadminCreds.telefono} creadoPor={subadminCreds.nombre_completo} onPublished={() => navigate('/')} />
+                ? <FundacionForm contacto={subadminCreds.telefono} creadoPor={subadminCreds.nombre_completo} centroCreador={subadminCreds.nombre_centro} onPublished={() => navigate('/')} />
                 : <Navigate to="/login" replace />
             }
           />

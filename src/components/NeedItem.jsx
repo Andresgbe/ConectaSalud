@@ -21,6 +21,25 @@ const SIGUIENTE_LABEL = {
   enviada: 'Confirmar recibida',
 }
 
+// Centros operativos conocidos (master/subadmin). El slug evita acentos en la clase CSS.
+export const CENTROS = ['Anatómico', 'Tropical']
+const CENTRO_SLUG = { 'Anatómico': 'anatomico', 'Tropical': 'tropical' }
+
+// Centro asociado a una necesidad: el de origen (quién la reportó, dato estructurado),
+// o el que la gestiona; como último recurso, el "(Centro)" embebido en el texto.
+export function centroDeItem(item) {
+  if (item?.creado_por_centro) return item.creado_por_centro
+  if (item?.cubierto_por_centro) return item.cubierto_por_centro
+  const txt = `${item?.creado_por || ''} ${item?.cubierto_por || ''}`
+  return CENTROS.find((c) => txt.includes(`(${c})`)) || null
+}
+
+export function CentroChip({ centro }) {
+  if (!centro) return null
+  const slug = CENTRO_SLUG[centro] || 'otro'
+  return <span className={`centro-chip centro-${slug}`}>🏥 {centro}</span>
+}
+
 export function horaYrelativo(iso) {
   const fecha = new Date(iso)
   const hora = fecha.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' })
@@ -31,7 +50,9 @@ export function horaYrelativo(iso) {
 
 // Datos de contacto compartidos por toda una solicitud (mismo lote).
 // Se muestra una sola vez: en la tarjeta individual o arriba del grupo.
-export function ItemInfoBlock({ item }) {
+// `verCreador` (solo admin/master/subadmin) revela los datos de quien reportó/colaboró;
+// para el resto se ocultan por privacidad (el chip de centro sí se ve para todos).
+export function ItemInfoBlock({ item, verCreador = false }) {
   return (
     <div className="item-sub item-sub-vertical">
       <div>{horaYrelativo(item.creado_en)}</div>
@@ -44,8 +65,8 @@ export function ItemInfoBlock({ item }) {
           {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
         </div>
       )}
-      {item.contacto && <div>{item.contacto}</div>}
-      {item.creado_por && <div>{item.creado_por}</div>}
+      {verCreador && item.contacto && <div>{item.contacto}</div>}
+      {verCreador && item.creado_por && <div>{item.creado_por}</div>}
       {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
       {item.transportista_nombre && (
         <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
@@ -272,7 +293,9 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
 
   // En grupos la info de contacto se muestra una sola vez, arriba del grupo,
   // así que aquí la omitimos para no duplicarla.
-  const infoBlock = groupControlled ? null : <ItemInfoBlock item={item} />
+  // Solo admin/master/subadmin ven los datos de quien reportó/colaboró (privacidad).
+  const verCreador = !!adminCreds || !!masterCreds || !!subadminCreds
+  const infoBlock = groupControlled ? null : <ItemInfoBlock item={item} verCreador={verCreador} />
 
   if (compact) {
     const noDisponible = item.incluido === false
@@ -315,7 +338,10 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   return (
     <div className={`need-card estado-bg-${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>
       <div className="need-top">
-        <span className="item-hospital">{item.hospital}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span className="item-hospital">{item.hospital}</span>
+          <CentroChip centro={centroDeItem(item)} />
+        </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className={`item-status ${noDisponible ? 'no_disponible' : item.estado_cobertura}`}>{noDisponible ? 'No disponible' : STATUS_LABEL[item.estado_cobertura]}</span>
           {deshabilitarBtn}
