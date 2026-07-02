@@ -278,6 +278,20 @@ export default function MasterPanel({ masterCreds }) {
     cargar()
   }
 
+  async function convertirSubadminAMaster(s) {
+    if (!confirm(`¿Convertir a "${s.nombre_completo}" en usuario master? Dejará de ser subadmin y podrá entrar al Panel Master.`)) return
+    const { error } = await supabase.rpc('master_convertir_subadmin_a_master', { p_master_telefono: tel, p_subadmin_id: s.id })
+    if (error) { setMsgS('⚠️ ' + error.message); return }
+    setMsgS(''); cargar()
+  }
+
+  async function convertirMasterASubadmin(u) {
+    if (!confirm(`¿Convertir a "${u.nombre}" en subadmin? Dejará de ser usuario master y perderá acceso al Panel Master.`)) return
+    const { error } = await supabase.rpc('master_convertir_master_a_subadmin', { p_master_telefono: tel, p_master_id: u.id })
+    if (error) { setMsgU('⚠️ ' + error.message); return }
+    setMsgU(''); cargar()
+  }
+
   const EXPORTS = [
     { key: 'hospitales', archivo: 'centros_de_salud.csv',
       headers: ['Nombre', 'Identificador', 'Codigo de acceso', 'Estado'],
@@ -616,6 +630,10 @@ export default function MasterPanel({ masterCreds }) {
                   setEditandoS(s.id)
                 }}>Editar</button>
                 {' · '}
+                <button className="mini-link" onClick={() => convertirSubadminAMaster(s)}>
+                  Convertir a master
+                </button>
+                {' · '}
                 <button className="mini-link" style={{ color: 'var(--rojo)' }} onClick={() => eliminarSubadmin(s)}>
                   Eliminar
                 </button>
@@ -684,6 +702,9 @@ export default function MasterPanel({ masterCreds }) {
                   setFormU({ codigo_acceso: u.codigo_acceso || '' })
                   setEditandoU(u.id)
                 }}>Editar código</button>
+                <button className="mini-link" onClick={() => convertirMasterASubadmin(u)}>
+                  Convertir a subadmin
+                </button>
               </div>
             )}
           </div>
