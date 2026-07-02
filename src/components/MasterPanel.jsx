@@ -85,6 +85,8 @@ export default function MasterPanel({ masterCreds }) {
   const [nuevoU, setNuevoU] = useState({ nombre: '', prefijo: '0414', numero: '', codigo: '', centro: 'Anatómico' })
   const [mostrarNuevoU, setMostrarNuevoU] = useState(false)
   const [msgU, setMsgU] = useState('')
+  const [editandoU, setEditandoU] = useState(null)
+  const [formU, setFormU] = useState({ codigo_acceso: '' })
 
   const [subadmins, setSubadmins] = useState([])
   const [editandoS, setEditandoS] = useState(null)
@@ -228,6 +230,15 @@ export default function MasterPanel({ masterCreds }) {
     const { error } = await supabase.rpc('master_editar_centro_master', { p_master_telefono: tel, p_master_id: id, p_centro: centro })
     if (error) { setMsgU('⚠️ ' + error.message); return }
     setMsgU(''); cargar()
+  }
+
+  async function guardarCodigoMaster(id) {
+    if (!formU.codigo_acceso.trim()) { setMsgU('⚠️ El código es obligatorio.'); return }
+    const { error } = await supabase.rpc('master_editar_codigo_master', {
+      p_master_telefono: tel, p_master_id: id, p_codigo_acceso: formU.codigo_acceso.trim()
+    })
+    if (error) { setMsgU('⚠️ ' + error.message); return }
+    setEditandoU(null); setMsgU(''); cargar()
   }
 
   async function crearSubadmin() {
@@ -654,12 +665,27 @@ export default function MasterPanel({ masterCreds }) {
         {usuarios.map((u) => (
           <div className="insumo-item" key={u.id}>
             <div className="item-line"><b>{u.nombre}</b></div>
-            <div className="item-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span>📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b> · 🏥</span>
-              <select value={u.centro || 'Anatómico'} onChange={(e) => cambiarCentroMaster(u.id, e.target.value)}>
-                {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
+            {editandoU === u.id ? (
+              <>
+                <input type="text" placeholder="Código" style={{ marginTop: 8 }} value={formU.codigo_acceso}
+                  onChange={(e) => setFormU({ codigo_acceso: e.target.value })} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button className="cover-btn" onClick={() => guardarCodigoMaster(u.id)}>Guardar</button>
+                  <button className="undo-btn" onClick={() => setEditandoU(null)}>Cancelar</button>
+                </div>
+              </>
+            ) : (
+              <div className="item-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span>📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b> · 🏥</span>
+                <select value={u.centro || 'Anatómico'} onChange={(e) => cambiarCentroMaster(u.id, e.target.value)}>
+                  {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <button className="mini-link" onClick={() => {
+                  setFormU({ codigo_acceso: u.codigo_acceso || '' })
+                  setEditandoU(u.id)
+                }}>Editar código</button>
+              </div>
+            )}
           </div>
         ))}
       </Seccion>
