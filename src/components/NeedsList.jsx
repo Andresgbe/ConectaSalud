@@ -10,10 +10,14 @@ function normalizar(s) {
 
 export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds }) {
   const [verDeshabilitadas, setVerDeshabilitadas] = useState(false)
+  const [verMisRechazadas, setVerMisRechazadas] = useState(false)
   const [needs, setNeeds] = useState([])
+  const [centrosActivos, setCentrosActivos] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ urgencia: '', status: '', texto: '' })
   const puedeMarcar = !!acopioCreds || !!fundacionCreds || !!medicoCreds || !!masterCreds || !!subadminCreds
+  // Centro del operador logueado (solo master/subadmin llevan centro).
+  const miCentro = masterCreds?.nombre_centro || subadminCreds?.nombre_centro || null
 
   async function loadNeeds() {
     const { data, error } = await supabase
@@ -26,6 +30,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
 
   useEffect(() => {
     loadNeeds()
+    supabase.rpc('centros_operativos').then(({ data }) => { if (Array.isArray(data)) setCentrosActivos(data) })
     const channel = supabase
       .channel('necesidades-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'necesidades' }, () => {
@@ -39,6 +44,9 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
     const txt = normalizar(filters.texto.trim())
     return needs.filter((n) => {
       if (n.deshabilitada) return false
+      // Lo que mi centro marcó "no disponible" (pero sigue vivo para otros) va a su
+      // propia sección, no a la vista general.
+      if (miCentro && n.incluido !== false && (n.rechazado_por_centros || []).includes(miCentro)) return false
       if (filters.urgencia && n.urgencia !== filters.urgencia) return false
       if (filters.status === 'no_disponible') {
         if (n.incluido !== false) return false
@@ -51,7 +59,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
       if (txt && !([n.insumo, n.hospital, n.servicio, n.contacto, n.creado_por, n.receptor_nombre, n.receptor_telefono, n.receptor_telefono_2, n.cubierto_por, n.transportista_nombre, n.transportista_telefono].some(v => v && normalizar(v).includes(txt)))) return false
       return true
     })
-  }, [needs, filters])
+  }, [needs, filters, miCentro])
 
   const groupedItems = useMemo(() => {
     const groups = new Map()
@@ -68,6 +76,12 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
   }, [filteredItems])
 
   const deshabilitadas = useMemo(() => needs.filter((n) => n.deshabilitada), [needs])
+
+  // Necesidades que MI centro marcó "no disponible" (siguen vivas para otros centros).
+  const misRechazadas = useMemo(
+    () => (miCentro ? needs.filter((n) => !n.deshabilitada && n.incluido !== false && (n.rechazado_por_centros || []).includes(miCentro)) : []),
+    [needs, miCentro]
+  )
 
   const hospitalesUnicos = useMemo(
     () => new Set(filteredItems.map((n) => n.hospital)).size,
@@ -175,6 +189,7 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
             fundacionCreds={fundacionCreds}
             masterCreds={masterCreds}
             subadminCreds={subadminCreds}
+            centrosActivos={centrosActivos}
           />
         ) : (
           <NeedItem
@@ -188,8 +203,37 @@ export default function NeedsList({ isAdmin, adminCreds, acopioCreds, medicoCred
             fundacionCreds={fundacionCreds}
             masterCreds={masterCreds}
             subadminCreds={subadminCreds}
+            centrosActivos={centrosActivos}
           />
         )
+      )}
+
+      {(masterCreds || subadminCreds) && misRechazadas.length > 0 && (
+        <div className="master-seccion" style={{ marginTop: 20 }}>
+          <button type="button" className="master-seccion-header" onClick={() => setVerMisRechazadas(v => !v)}>
+            <span>🕓 Marqué "No disponible" ({misRechazadas.length})</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{verMisRechazadas ? '−' : '+'}</span>
+          </button>
+          {verMisRechazadas && (
+            <div className="master-seccion-body">
+              {misRechazadas.map((item) => (
+                <NeedItem
+                  key={item.id}
+                  item={item}
+                  onChanged={loadNeeds}
+                  isAdmin={isAdmin}
+                  adminCreds={adminCreds}
+                  acopioCreds={acopioCreds}
+                  medicoCreds={medicoCreds}
+                  fundacionCreds={fundacionCreds}
+                  masterCreds={masterCreds}
+                  subadminCreds={subadminCreds}
+                  centrosActivos={centrosActivos}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {(masterCreds || subadminCreds) && (

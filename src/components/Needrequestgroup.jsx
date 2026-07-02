@@ -17,7 +17,7 @@ const SIGUIENTE_LABEL = {
 }
 const ORDEN_URGENCIA = { urgente: 0, alta: 1, mediana: 2, baja: 3 }
 
-export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds }) {
+export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, centrosActivos = [] }) {
   const [collapsed, setCollapsed] = useState(false)
   const [checkedIds, setCheckedIds] = useState(() => new Set())
   const [busy, setBusy] = useState(false)
@@ -39,7 +39,13 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
   const vaACamino = estadoGrupo === 'lista_para_salir'
   const esUltimoPaso = estadoGrupo === 'enviada'
 
-  const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && medicoCreds.hospital === hospital)
+  // Exclusividad por centro: si otro centro ya está gestionando algún insumo de la caja,
+  // este centro no puede tocarla (solo master/subadmin llevan centro).
+  const miCentro = masterCreds?.nombre_centro || subadminCreds?.nombre_centro || null
+  const esOperador = !!masterCreds || !!subadminCreds
+  const gestionadaPorOtro = esOperador && !!miCentro && items.some((it) => it.cubierto_por_centro && it.cubierto_por_centro !== miCentro)
+
+  const puedeCambiar = (!!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && medicoCreds.hospital === hospital)) && !gestionadaPorOtro
 
   // En la fase 2 los checkboxes representan "disponible" y arrancan vacíos:
   // quien gestiona marca uno por uno los insumos que SÍ tiene; lo que quede
@@ -245,8 +251,12 @@ export default function NeedRequestGroup({ items, onChanged, isAdmin, adminCreds
               fundacionCreds={fundacionCreds}
               masterCreds={masterCreds}
               subadminCreds={subadminCreds}
+              centrosActivos={centrosActivos}
             />
           ))}
+          {gestionadaPorOtro && (
+            <div className="item-sub no-disponible-por">🔒 Esta caja la está gestionando otro centro.</div>
+          )}
 
           {/* Comentario de la caja: visible para todos; editable por quien gestiona. */}
           {!puedeCambiar && comentarioGuardado && (

@@ -54,7 +54,7 @@ export function ItemInfoBlock({ item }) {
   )
 }
 
-export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact, groupControlled, selectable, checked, onToggleCheck }) {
+export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioCreds, medicoCreds, fundacionCreds, masterCreds, subadminCreds, compact, groupControlled, selectable, checked, onToggleCheck, centrosActivos = [] }) {
   const [busy, setBusy] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
   const [nota, setNota] = useState('')
@@ -63,7 +63,16 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
   const [transTel, setTransTel] = useState('')
 
   const esMiHospital = medicoCreds?.hospital === item.hospital
-  const puedeCambiar = !!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && esMiHospital)
+  // Centro del operador logueado (solo master/subadmin llevan centro).
+  const miCentro = masterCreds?.nombre_centro || subadminCreds?.nombre_centro || null
+  const esOperador = !!masterCreds || !!subadminCreds
+  const rech = item.rechazado_por_centros || []
+  const yoRechace = !!miCentro && rech.includes(miCentro)
+  // Exclusividad: si otro centro ya la está gestionando, no la puedo tocar.
+  const gestionadaPorOtro = esOperador && !!item.cubierto_por_centro && !!miCentro && item.cubierto_por_centro !== miCentro
+  const faltantes = centrosActivos.filter((c) => !rech.includes(c))
+
+  const puedeCambiar = (!!acopioCreds || !!fundacionCreds || !!masterCreds || !!subadminCreds || (medicoCreds && esMiHospital)) && !gestionadaPorOtro
   const esUltimoPaso = item.estado_cobertura === 'enviada'
   const vaACamino = item.estado_cobertura === 'lista_para_salir'
   const noDisponible = item.incluido === false
@@ -197,6 +206,11 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         <span className="item-sub">Marcado como no disponible.</span>
         <button className="undo-btn" disabled={busy} onClick={reactivar}>Reactivar</button>
       </div>
+    ) : yoRechace ? (
+      <div className="status-line">
+        <span className="item-sub">Marcaste "No disponible" para {miCentro}.</span>
+        <button className="undo-btn" disabled={busy} onClick={reactivar}>Reactivar</button>
+      </div>
     ) : (
     <div className="status-line">
       {item.estado_cobertura !== 'recibida' && !vaACamino && (
@@ -234,6 +248,14 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       )}
     </div>
     )
+  )
+
+  // Rechazada por algún centro pero todavía viva: se informa a los demás.
+  const rechazoBlock = !noDisponible && rech.length > 0 && !yoRechace && (
+    <div className="item-sub no-disponible-por">
+      🕓 No disponible para {rech.join(', ')}
+      {faltantes.length > 0 && <> · en espera por <b>{faltantes.join(', ')}</b></>}
+    </div>
   )
 
   const deshabilitarBtn = puedeDeshabilitar && (
@@ -279,6 +301,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         {noDisponible && item.no_disponible_por && (
           <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
         )}
+        {rechazoBlock}
 
         {infoBlock}
 
@@ -309,6 +332,7 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
       {noDisponible && item.no_disponible_por && (
         <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
       )}
+      {rechazoBlock}
 
       {infoBlock}
 

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.js'
 import { descargarCSV } from '../utils/csv.js'
 
 const PREFIJOS = ['0412', '0414', '0416', '0424', '0426', '0422']
+const CENTROS = ['Anatómico', 'Tropical']
 
 const fechaLegible = (v) => (v ? new Date(v).toLocaleString('es-VE') : '')
 const siNo = (v) => (v ? 'Sí' : 'No')
@@ -21,6 +22,7 @@ const COLS_NECESIDADES = [
   ['Disponible', (n) => (n.incluido === false ? 'No' : 'Sí')],
   ['Deshabilitada', (n) => siNo(n.deshabilitada)],
   ['No disponible marcado por', (n) => n.no_disponible_por],
+  ['Rechazado por centros', (n) => (n.rechazado_por_centros || []).join(' / ')],
   ['Creado por', (n) => n.creado_por],
   ['Contacto', (n) => n.contacto],
   ['Receptor nombre', (n) => n.receptor_nombre],
@@ -80,14 +82,14 @@ export default function MasterPanel({ masterCreds }) {
   const [mostrarNuevoF, setMostrarNuevoF] = useState(false)
   const [msgF, setMsgF] = useState('')
 
-  const [nuevoU, setNuevoU] = useState({ nombre: '', prefijo: '0414', numero: '', codigo: '' })
+  const [nuevoU, setNuevoU] = useState({ nombre: '', prefijo: '0414', numero: '', codigo: '', centro: 'Anatómico' })
   const [mostrarNuevoU, setMostrarNuevoU] = useState(false)
   const [msgU, setMsgU] = useState('')
 
   const [subadmins, setSubadmins] = useState([])
   const [editandoS, setEditandoS] = useState(null)
-  const [formS, setFormS] = useState({ telefono: '', nombre_completo: '', codigo_acceso: '' })
-  const [nuevoS, setNuevoS] = useState({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026' })
+  const [formS, setFormS] = useState({ telefono: '', nombre_completo: '', codigo_acceso: '', centro: 'Anatómico' })
+  const [nuevoS, setNuevoS] = useState({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026', centro: 'Anatómico' })
   const [mostrarNuevoS, setMostrarNuevoS] = useState(false)
   const [msgS, setMsgS] = useState('')
 
@@ -214,11 +216,18 @@ export default function MasterPanel({ masterCreds }) {
     if (!nuevoU.nombre.trim() || !nuevoU.codigo.trim()) { setMsgU('⚠️ Nombre y código son obligatorios.'); return }
     const { error } = await supabase.rpc('master_crear_usuario', {
       p_master_telefono: tel, p_nombre: nuevoU.nombre.trim(),
-      p_telefono_nuevo: nuevoU.prefijo + nuevoU.numero, p_codigo: nuevoU.codigo.trim()
+      p_telefono_nuevo: nuevoU.prefijo + nuevoU.numero, p_codigo: nuevoU.codigo.trim(),
+      p_centro: nuevoU.centro
     })
     if (error) { setMsgU('⚠️ ' + error.message); return }
-    setNuevoU({ nombre: '', prefijo: '0414', numero: '', codigo: '' })
+    setNuevoU({ nombre: '', prefijo: '0414', numero: '', codigo: '', centro: 'Anatómico' })
     setMostrarNuevoU(false); setMsgU(''); cargar()
+  }
+
+  async function cambiarCentroMaster(id, centro) {
+    const { error } = await supabase.rpc('master_editar_centro_master', { p_master_telefono: tel, p_master_id: id, p_centro: centro })
+    if (error) { setMsgU('⚠️ ' + error.message); return }
+    setMsgU(''); cargar()
   }
 
   async function crearSubadmin() {
@@ -229,9 +238,10 @@ export default function MasterPanel({ masterCreds }) {
       p_telefono: nuevoS.prefijo + nuevoS.numero,
       p_nombre_completo: nuevoS.nombre_completo.trim(),
       p_codigo_acceso: nuevoS.codigo_acceso.trim(),
+      p_centro: nuevoS.centro,
     })
     if (error) { setMsgS('⚠️ ' + error.message); return }
-    setNuevoS({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026' })
+    setNuevoS({ nombre_completo: '', prefijo: '0414', numero: '', codigo_acceso: 'SUBADMIN2026', centro: 'Anatómico' })
     setMostrarNuevoS(false); setMsgS(''); cargar()
   }
 
@@ -244,6 +254,7 @@ export default function MasterPanel({ masterCreds }) {
       p_telefono: formS.telefono.trim(),
       p_nombre_completo: formS.nombre_completo.trim(),
       p_codigo_acceso: formS.codigo_acceso.trim(),
+      p_centro: formS.centro,
     })
     if (error) { setMsgS('⚠️ ' + error.message); return }
     setEditandoS(null); setMsgS(''); cargar()
@@ -267,11 +278,11 @@ export default function MasterPanel({ masterCreds }) {
       headers: ['Nombre', 'Identificador', 'Codigo de acceso', 'Estado'],
       filas: () => fundaciones.map((f) => [f.nombre, f.identificador, f.codigo_acceso, f.activo ? 'Activo' : 'Inactivo']) },
     { key: 'subadmins', archivo: 'subadmins.csv',
-      headers: ['Nombre', 'Telefono', 'Codigo de acceso'],
-      filas: () => subadmins.map((s) => [s.nombre_completo, s.telefono, s.codigo_acceso]) },
+      headers: ['Nombre', 'Telefono', 'Codigo de acceso', 'Centro'],
+      filas: () => subadmins.map((s) => [s.nombre_completo, s.telefono, s.codigo_acceso, s.centro || 'Anatómico']) },
     { key: 'usuarios', archivo: 'usuarios_master.csv',
-      headers: ['Nombre', 'Telefono', 'Codigo de acceso'],
-      filas: () => usuarios.map((u) => [u.nombre, u.telefono, u.codigo_acceso]) },
+      headers: ['Nombre', 'Telefono', 'Codigo de acceso', 'Centro'],
+      filas: () => usuarios.map((u) => [u.nombre, u.telefono, u.codigo_acceso, u.centro || 'Anatómico']) },
   ]
 
   const exportarUno = (cfg) => descargarCSV(cfg.archivo, cfg.headers, cfg.filas())
@@ -548,6 +559,10 @@ export default function MasterPanel({ masterCreds }) {
             <input type="text" value={nuevoS.codigo_acceso}
               onChange={(e) => setNuevoS(s => ({ ...s, codigo_acceso: e.target.value }))}
               placeholder="Ej: SUBADMIN2026" />
+            <label>Centro</label>
+            <select value={nuevoS.centro} onChange={(e) => setNuevoS(s => ({ ...s, centro: e.target.value }))}>
+              {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button className="cover-btn" onClick={crearSubadmin}>Crear</button>
               <button className="undo-btn" onClick={() => { setMostrarNuevoS(false); setMsgS('') }}>Cancelar</button>
@@ -573,6 +588,9 @@ export default function MasterPanel({ masterCreds }) {
                 </div>
                 <input type="text" placeholder="Código de acceso" style={{ marginTop: 8 }} value={formS.codigo_acceso}
                   onChange={(e) => setFormS(f => ({ ...f, codigo_acceso: e.target.value }))} />
+                <select style={{ marginTop: 8 }} value={formS.centro} onChange={(e) => setFormS(f => ({ ...f, centro: e.target.value }))}>
+                  {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button className="cover-btn" onClick={() => guardarSubadmin(s.id)}>Guardar</button>
                   <button className="undo-btn" onClick={() => setEditandoS(null)}>Cancelar</button>
@@ -580,10 +598,10 @@ export default function MasterPanel({ masterCreds }) {
               </>
             ) : (
               <div className="item-sub">
-                📞 {s.telefono} · Código: <b>{s.codigo_acceso}</b>
+                📞 {s.telefono} · Código: <b>{s.codigo_acceso}</b> · 🏥 <b>{s.centro || 'Anatómico'}</b>
                 {' · '}
                 <button className="mini-link" onClick={() => {
-                  setFormS({ telefono: s.telefono || '', nombre_completo: s.nombre_completo || '', codigo_acceso: s.codigo_acceso || '' })
+                  setFormS({ telefono: s.telefono || '', nombre_completo: s.nombre_completo || '', codigo_acceso: s.codigo_acceso || '', centro: s.centro || 'Anatómico' })
                   setEditandoS(s.id)
                 }}>Editar</button>
                 {' · '}
@@ -617,6 +635,10 @@ export default function MasterPanel({ masterCreds }) {
             </div>
             <label>Código de acceso</label>
             <input type="text" value={nuevoU.codigo} onChange={(e) => setNuevoU(s => ({ ...s, codigo: e.target.value }))} placeholder="Ej: MASTER2026" />
+            <label>Centro</label>
+            <select value={nuevoU.centro} onChange={(e) => setNuevoU(s => ({ ...s, centro: e.target.value }))}>
+              {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button className="cover-btn" onClick={crearUsuario}>Crear</button>
               <button className="undo-btn" onClick={() => { setMostrarNuevoU(false); setMsgU('') }}>Cancelar</button>
@@ -632,7 +654,12 @@ export default function MasterPanel({ masterCreds }) {
         {usuarios.map((u) => (
           <div className="insumo-item" key={u.id}>
             <div className="item-line"><b>{u.nombre}</b></div>
-            <div className="item-sub">📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b></div>
+            <div className="item-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span>📞 {u.telefono} · Código: <b>{u.codigo_acceso}</b> · 🏥</span>
+              <select value={u.centro || 'Anatómico'} onChange={(e) => cambiarCentroMaster(u.id, e.target.value)}>
+                {CENTROS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
         ))}
       </Seccion>
