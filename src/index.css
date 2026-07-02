@@ -38,6 +38,17 @@ header.top p{margin:0;font-size:.92rem;color:#cfd4e2;max-width:620px;}
 .disclaimer{background:#fff;border-bottom:1px solid var(--line);font-size:.82rem;color:#444;padding:10px 16px;}
 .disclaimer b{color:var(--rojo);}
 
+.update-banner{
+  display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  background:var(--ambar-bg);color:var(--ambar);border-bottom:1px solid var(--line);
+  font-size:.85rem;padding:10px 16px;
+}
+.update-banner button{
+  background:var(--teal);color:#fff;border:none;border-radius:8px;
+  padding:6px 14px;font-size:.85rem;font-weight:600;cursor:pointer;
+}
+.update-banner button:hover{background:var(--teal-dark);}
+
 .section-nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px;}
 .section-label{
   display:inline-flex;align-items:center;gap:7px;

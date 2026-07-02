@@ -11,6 +11,7 @@ import Info from './components/Info.jsx'
 import FoodTab from './components/FoodTab.jsx'
 import FundacionForm from './components/FundacionForm.jsx'
 import MasterPanel from './components/MasterPanel.jsx'
+import UpdateBanner from './components/UpdateBanner.jsx'
 
 const K_MEDICO = 'medico_creds'
 const K_ACOPIO = 'acopio_creds'
@@ -124,6 +125,7 @@ export default function App() {
   } 
   return (
     <>
+      <UpdateBanner />
       <header className="top">
         <div className="wrap header-inner">
           <div className="header-brand">
