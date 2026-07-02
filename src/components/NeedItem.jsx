@@ -53,6 +53,12 @@ export function horaYrelativo(iso) {
 // `verCreador` (solo admin/master/subadmin) revela los datos de quien reportó/colaboró;
 // para el resto se ocultan por privacidad (el chip de centro sí se ve para todos).
 export function ItemInfoBlock({ item, verCreador = false }) {
+  // El reportante suele ser la misma persona que recibe; solo lo mostramos
+  // si aporta un dato distinto al que ya se ve en "Recibe" (evita duplicarlo).
+  const reportante = []
+  if (verCreador && item.creado_por && item.creado_por !== item.receptor_nombre) reportante.push(item.creado_por)
+  if (verCreador && item.contacto && item.contacto !== item.receptor_telefono) reportante.push(item.contacto)
+
   return (
     <div className="item-sub item-sub-vertical">
       <div>{horaYrelativo(item.creado_en)}</div>
@@ -65,12 +71,12 @@ export function ItemInfoBlock({ item, verCreador = false }) {
           {item.receptor_telefono_2 && <> · <b>Contacto 2:</b> {item.receptor_telefono_2}</>}
         </div>
       )}
-      {verCreador && item.contacto && <div>{item.contacto}</div>}
-      {verCreador && item.creado_por && <div>{item.creado_por}</div>}
+      {reportante.length > 0 && <div><b>Reportado por:</b> {reportante.join(' · ')}</div>}
       {item.estado_cobertura !== 'pendiente' && item.cubierto_por && <div>{item.cubierto_por}</div>}
       {item.transportista_nombre && (
         <div><b>🚚 Quien transporta:</b> {item.transportista_nombre} ({item.transportista_telefono})</div>
       )}
+      {item.notas && <div className="need-notas">{item.notas}</div>}
     </div>
   )
 }
@@ -319,8 +325,6 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
           {deshabilitarBtn}
         </div>
 
-        {item.notas && <div className="need-notas">{item.notas}</div>}
-
         {noDisponible && item.no_disponible_por && (
           <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
         )}
@@ -352,8 +356,6 @@ export default function NeedItem({ item, onChanged, isAdmin, adminCreds, acopioC
         <b>{item.insumo}</b>{item.cantidad ? ` — ${item.cantidad}` : ''}
         <span className={`tag-mini u-${item.urgencia}`}>{URGENCIA_LABEL[item.urgencia]}</span>
       </div>
-
-      {item.notas && <div className="need-notas">{item.notas}</div>}
 
       {noDisponible && item.no_disponible_por && (
         <div className="item-sub no-disponible-por">🚫 Marcado no disponible por {item.no_disponible_por}</div>
